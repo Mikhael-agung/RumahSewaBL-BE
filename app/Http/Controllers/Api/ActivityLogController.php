@@ -18,11 +18,11 @@ class ActivityLogController extends Controller
 
     public function index()
     {
-        //
+        // memang belum ada isinya
     }
 
     public function show(ActivityLog $activityLog)
     {
-        //
+        // memang belum ada isinya
     }
 }

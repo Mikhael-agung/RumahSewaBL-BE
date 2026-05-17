@@ -14,7 +14,7 @@ class StorePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            // memang belum ada isinya
         ];
     }
 }

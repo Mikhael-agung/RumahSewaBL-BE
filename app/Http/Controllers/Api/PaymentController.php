@@ -19,21 +19,21 @@ class PaymentController extends Controller
 
     public function index()
     {
-        //
+        // memang belum ada isinya
     }
 
     public function store(StorePaymentRequest $request)
     {
-        //
+        // memang belum ada isinya
     }
 
     public function show(Payment $payment)
     {
-        //
+        // memang belum ada isinya
     }
 
     public function verify(VerifyPaymentRequest $request)
     {
-        //
+        // memang belum ada isinya
     }
 }

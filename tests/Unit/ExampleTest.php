@@ -11,6 +11,7 @@ class ExampleTest extends TestCase
      */
     public function test_that_true_is_true(): void
     {
+        // memang belum ada isinya
         $this->assertTrue(true);
     }
 }
