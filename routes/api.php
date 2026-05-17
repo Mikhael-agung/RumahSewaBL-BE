@@ -8,11 +8,12 @@ use App\Http\Controllers\Api\PaymentController;
 Route::post('/login', [AuthController::class, 'login']);
 
 // Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:api')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
 
-    // Penyewa 
+    // Penyewa only
     Route::middleware('role:penyewa')->group(function () {
         Route::post('/payments/upload', [PaymentController::class, 'upload']);
         Route::get('/payments/history', [PaymentController::class, 'history']);

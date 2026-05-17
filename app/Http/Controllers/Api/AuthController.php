@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
@@ -30,9 +31,8 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Buat token Sanctum
         $userModel = \App\Models\User::find($user->id);
-        $token = $userModel->createToken('auth_token')->plainTextToken;
+        $token = JWTAuth::fromUser($userModel);
 
         return response()->json([
             'success' => true,
@@ -48,11 +48,26 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        JWTAuth::invalidate(JWTAuth::getToken());
 
         return response()->json([
             'success' => true,
             'message' => 'Logout berhasil',
+        ]);
+    }
+
+    public function me(Request $request)
+    {
+        $user = JWTAuth::parseToken()->authenticate();
+        $role = DB::table('roles')->where('id', $user->role_id)->value('name');
+
+        return response()->json([
+            'success' => true,
+            'user'    => [
+                'id'       => $user->id,
+                'username' => $user->username,
+                'role'     => $role,
+            ],
         ]);
     }
 }
