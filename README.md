@@ -1,58 +1,263 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🏠 Rumah Sewa Biru Laut — Backend Documentation
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> Dokumentasi sementara progress Backend (BE) — Sprint 1 Minggu 9
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📋 Informasi Project
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| | |
+|---|---|
+| **Project** | Rumah Sewa Biru Laut |
+| **Mata Kuliah** | Manajemen Proyek Teknologi Informasi |
+| **Stack BE** | Laravel 13 + JWT Auth |
+| **Stack FE** | Flutter Web |
+| **Database** | MySQL (Hostinger) |
+| **Status** | 🟡 Sprint 1 — In Progress |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🗄️ Database
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- **Host**: `auth-db1417.hstgr.io`
+- **Database**: `u271192176_rsbl_test`
+- **Local Dev**: MySQL via Laragon (`127.0.0.1:3306`)
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Tabel yang tersedia
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+| Tabel | Keterangan |
+|---|---|
+| `roles` | Role user: administrator, manager, penyewa |
+| `users` | Data login user |
+| `tenants` | Profil lengkap penyewa |
+| `buildings` | Data gedung |
+| `rooms` | Data kamar |
+| `rentals` | Data penyewaan |
+| `payment_deadlines` | Deadline pembayaran bulanan |
+| `payments` | Data pembayaran + bukti |
+| `notifications` | Notifikasi dalam sistem |
+| `activity_logs` | Log aktivitas (admin only) |
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## ⚙️ Setup & Instalasi
+
+### Requirements
+- PHP >= 8.2
+- Composer >= 2.x
+- MySQL >= 8.0
+- Laragon (local dev)
+
+### Langkah instalasi
 
 ```bash
-composer require laravel/boost --dev
+# 1. Clone repository
+git clone <repo-url>
+cd rumah-sewa-biru-laut
 
-php artisan boost:install
+# 2. Install dependencies
+composer install
+
+# 3. Copy env
+cp .env.example .env
+
+# 4. Generate app key
+php artisan key:generate
+
+# 5. Generate JWT secret
+php artisan jwt:secret
+
+# 6. Konfigurasi .env (lihat bagian ENV di bawah)
+
+# 7. Jalankan server
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### Konfigurasi .env
 
-## Contributing
+```env
+APP_NAME="Rumah Sewa Biru Laut"
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost:8000
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=u271192176_rsbl_test
+DB_USERNAME=root
+DB_PASSWORD=
 
-## Code of Conduct
+SESSION_DRIVER=file
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## 🔐 Autentikasi
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Sistem auth menggunakan **JWT (JSON Web Token)** via package `tymon/jwt-auth`.
 
-## License
+### Flow autentikasi
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```
+1. Flutter kirim POST /api/login (username + password)
+2. Laravel validasi ke tabel users
+3. Cocok → generate JWT token
+4. Token dikirim ke Flutter
+5. Flutter simpan token di local storage
+6. Setiap request berikutnya Flutter kirim token di header:
+   Authorization: Bearer <token>
+7. Laravel decode token → valid → request diproses
+8. Logout → token di-invalidate
+```
+
+### Guard
+
+```php
+// config/auth.php
+'api' => [
+    'driver' => 'jwt',
+    'provider' => 'users',
+]
+```
+
+---
+
+## 📡 API Endpoints
+
+Base URL: `http://127.0.0.1:8000/api`
+
+### Public (tidak perlu token)
+
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| POST | `/login` | Login user |
+
+### Protected (perlu Bearer Token)
+
+| Method | Endpoint | Role | Deskripsi |
+|---|---|---|---|
+| POST | `/logout` | Semua | Logout user |
+| GET | `/me` | Semua | Data user yang login |
+| POST | `/payments/upload` | penyewa | Upload bukti pembayaran |
+| GET | `/payments/history` | penyewa | Riwayat pembayaran |
+| GET | `/payments/pending` | manager, administrator | List pembayaran pending |
+| POST | `/payments/{id}/verify` | manager, administrator | Verifikasi pembayaran |
+| POST | `/payments/{id}/reject` | manager, administrator | Tolak pembayaran |
+
+### Contoh request login
+
+```json
+POST /api/login
+Headers: Accept: application/json
+Content-Type: application/json
+
+{
+    "username": "admin01",
+    "password": "admin123"
+}
+```
+
+### Contoh response sukses
+
+```json
+{
+    "success": true,
+    "message": "Login berhasil",
+    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "user": {
+        "id": 1,
+        "username": "admin01",
+        "role": "administrator"
+    }
+}
+```
+
+### Contoh request dengan token
+
+```
+GET /api/me
+Headers:
+  Accept: application/json
+  Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+```
+
+---
+
+## 📁 Struktur Folder
+
+```
+app/
+├── Http/
+│   ├── Controllers/Api/
+│   │   ├── AuthController.php       ✅ Done
+│   │   ├── PaymentController.php    🔄 In Progress
+│   │   ├── BuildingController.php   📋 Todo
+│   │   ├── RoomController.php       📋 Todo
+│   │   ├── TenantController.php     📋 Todo
+│   │   ├── RentalController.php     📋 Todo
+│   │   └── ActivityLogController.php 📋 Todo
+│   ├── Middleware/
+│   │   └── CheckRole.php            ✅ Done
+│   └── Requests/
+│       ├── LoginRequest.php
+│       ├── StorePaymentRequest.php
+│       └── VerifyPaymentRequest.php
+├── Models/
+│   ├── User.php                     ✅ Done (JWT)
+│   ├── Payment.php                  📋 Todo
+│   └── ...
+└── Services/
+    ├── AuthService.php
+    ├── PaymentService.php
+    └── ActivityLogService.php
+```
+
+---
+
+## 📊 Sprint Progress
+
+### Sprint 1 — Minggu 9 (Sekarang)
+
+| Task | Status |
+|---|---|
+| Setup Laravel + koneksi DB | ✅ Done |
+| Install & konfigurasi JWT | ✅ Done |
+| CORS konfigurasi | ✅ Done |
+| AuthController (login & logout) | ✅ Done |
+| Middleware CheckRole | ✅ Done |
+| Routes api.php | ✅ Done |
+| Halaman Login Flutter | 📋 Todo |
+
+### Sprint 1 — Minggu 10
+
+| Task | Status |
+|---|---|
+| PaymentController — upload bukti | 📋 Todo |
+| PaymentController — verifikasi & tolak | 📋 Todo |
+| CRUD Gedung, Kamar, Penyewa | 📋 Todo |
+| Halaman Upload Bukti (Flutter) | 📋 Todo |
+| Halaman Verifikasi (Flutter) | 📋 Todo |
+
+---
+
+## 👥 Role & Akses
+
+| Role | ID | Akses |
+|---|---|---|
+| administrator | 1 | Semua fitur + activity log |
+| manager | 2 | Kelola gedung, kamar, penyewa, verifikasi pembayaran |
+| penyewa | 3 | Upload pembayaran, lihat riwayat |
+
+---
+
+## 📦 Packages
+
+| Package | Versi | Kegunaan |
+|---|---|---|
+| `laravel/framework` | 13.x | Framework utama |
+| `tymon/jwt-auth` | latest | Autentikasi JWT |
+
+---
+
+> Last updated: Sprint 1 Minggu 9 — Mei 2026
