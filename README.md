@@ -8,9 +8,9 @@
 ![Flutter](https://img.shields.io/badge/Flutter-Web-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Railway](https://img.shields.io/badge/Railway-Deploy-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)
 
-**Dokumentasi Backend — Sprint 1 Minggu 10**
+**Backend Aplikasi Sistem Sewa Rumah Kos Biru Laut**
 
-🟢 Status: **Payment API Ready**
+🟢 **Status**: Payment API Ready | Sprint 1 Minggu 10
 
 [🌐 Live API](https://rumahsewabl-be-production.up.railway.app) · [📋 Endpoints](#-api-endpoints) · [⚙️ Setup](#️-setup--instalasi)
 
@@ -27,32 +27,52 @@
 | **Stack BE** | Laravel 13 + JWT Auth |
 | **Stack FE** | Flutter Web |
 | **Database** | MySQL (Hostinger) |
-| **BE Live** | rumahsewabl-be-production-v2.up.railway.app |
+| **Deployment** | Railway |
+
+**Live URL**: `https://rumahsewabl-be-production.up.railway.app/api`
+
+---
+
+## 🔄 Alur Aplikasi
+
+```mermaid
+flowchart TD
+    A[User Login] --> B{Role?}
+    B -->|Penyewa| C[Lihat Kamar Tersedia]
+    C --> D[Booking / Sewa Kamar]
+    D --> E[Lihat Tagihan & Deadline]
+    E --> F[Upload Bukti Bayar]
+    F --> G[Manager / Admin Verifikasi]
+    G --> H[Status Pembayaran Update]
+    B -->|Manager / Admin| I[Kelola Gedung, Kamar, Penyewa]
+```
+
+### User Flow Detail
+
+**Login** → Mendapat JWT Token + Role
+
+| Role | Alur |
+|---|---|
+| **Penyewa** | Lihat kamar → Booking → Bayar → Upload bukti |
+| **Manager** | Kelola gedung & kamar → Verifikasi/Tolak pembayaran |
+| **Administrator** | Semua akses + monitoring log aktivitas |
 
 ---
 
 ## 🗄️ Database
 
-| Field | Value |
-|---|---|
-| **Host** | `auth-db1417.hstgr.io` |
-| **Database** | `u271192176_rsbl_test` |
-| **Local Dev** | MySQL via Laragon `127.0.0.1:3306` |
-
-### Tabel
-
 | Tabel | Keterangan |
 |---|---|
-| `roles` | Role user: `administrator`, `manager`, `penyewa` |
-| `users` | Data login user |
-| `tenants` | Profil lengkap penyewa |
+| `roles` | Role: administrator, manager, penyewa |
+| `users` | Data login |
+| `tenants` | Profil penyewa |
 | `buildings` | Data gedung |
 | `rooms` | Data kamar |
-| `rentals` | Data penyewaan |
-| `payment_deadlines` | Deadline pembayaran bulanan |
-| `payments` | Data pembayaran + bukti |
-| `notifications` | Notifikasi dalam sistem |
-| `activity_logs` | Log aktivitas (admin only) |
+| `rentals` | Data kontrak penyewaan |
+| `payment_deadlines` | Deadline pembayaran |
+| `payments` | Riwayat pembayaran + bukti |
+| `notifications` | Notifikasi sistem |
+| `activity_logs` | Log aktivitas admin |
 
 ---
 
@@ -60,244 +80,96 @@
 
 ### Requirements
 
-- PHP >= 8.2
-- Composer >= 2.x
-- MySQL >= 8.0
-- Laragon (local dev)
+- PHP ≥ 8.2
+- Composer ≥ 2.x
+- MySQL ≥ 8.0
+- Laragon (rekomendasi local)
 
 ### Langkah Instalasi
 
 ```bash
-# 1. Clone repository
-git clone <repo-url>
-cd rumah-sewa-biru-laut
+git clone https://github.com/Mikhael-agung/RumahSewaBL-BE.git
+cd RumahSewaBL-BE
 
-# 2. Install dependencies
 composer install
-
-# 3. Copy env
 cp .env.example .env
 
-# 4. Generate app key
 php artisan key:generate
-
-# 5. Generate JWT secret
 php artisan jwt:secret
-
-# 6. Storage link
 php artisan storage:link
 
-# 7. Jalankan server
 php artisan serve
-```
-
-### Konfigurasi `.env`
-
-```env
-APP_NAME="Rumah Sewa Biru Laut"
-APP_ENV=local
-APP_DEBUG=true
-APP_URL=http://localhost:8000
-
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=u271192176_rsbl_test
-DB_USERNAME=root
-DB_PASSWORD=
-
-CACHE_STORE=file
-SESSION_DRIVER=file
 ```
 
 ---
 
 ## 🔐 Autentikasi
 
-Sistem auth menggunakan **JWT (JSON Web Token)** via package `tymon/jwt-auth`.
+Menggunakan **JWT** (`tymon/jwt-auth`). Setiap request ke endpoint protected wajib menyertakan header:
 
 ```
-Flutter  ──POST /api/login──►  Laravel  ──validasi users──►  JWT Token
-                                                                  │
-Flutter  ◄──token──────────────────────────────────────────────────
-   │
-   └── setiap request: Authorization: Bearer <token>
-                              │
-                       Laravel decode → valid → proses
+Authorization: Bearer <token>
 ```
 
 ---
 
-## 📡 API Endpoints
+## 📋 API Endpoints
 
-| Base | URL |
-|---|---|
-| **Production** | `https://rumahsewabl-be-production.up.railway.app/api` |
-| **Local** | `http://127.0.0.1:8000/api` |
+**Base URL**: `/api`
 
-### 🔓 Public
+### Public
 
 | Method | Endpoint | Deskripsi |
 |---|---|---|
-| `GET` | `/health` | Health check BE |
+| `GET` | `/health` | Health check |
 | `POST` | `/login` | Login user |
 
-### 🔒 Protected (Bearer Token)
+### Protected
 
 | Method | Endpoint | Role | Deskripsi |
 |---|---|---|---|
 | `POST` | `/logout` | Semua | Logout |
-| `GET` | `/me` | Semua | Data user login |
+| `GET` | `/me` | Semua | Data user saat ini |
 | `POST` | `/payments/upload` | penyewa | Upload bukti pembayaran |
 | `GET` | `/payments/history` | penyewa | Riwayat pembayaran |
 | `GET` | `/payments/pending` | manager, admin | List pembayaran pending |
 | `POST` | `/payments/{id}/verify` | manager, admin | Verifikasi pembayaran |
 | `POST` | `/payments/{id}/reject` | manager, admin | Tolak pembayaran |
 
----
-
-## 📨 Contoh Request & Response
-
-<details>
-<summary><b>POST /api/login</b></summary>
-
-**Request**
-```json
-{
-    "username": "admin01",
-    "password": "admin123"
-}
-```
-
-**Response**
-```json
-{
-    "success": true,
-    "message": "Login berhasil",
-    "token": "eyJ0eXAiOiJKV1Qi...",
-    "user": {
-        "id": 1,
-        "username": "admin01",
-        "role": "administrator"
-    }
-}
-```
-</details>
-
-<details>
-<summary><b>POST /api/payments/upload</b></summary>
-
-**Request** — `multipart/form-data`
-
-| Field | Type | Keterangan |
-|---|---|---|
-| `payment_month` | integer | Bulan (1–12) |
-| `payment_year` | integer | Tahun |
-| `amount` | numeric | Nominal pembayaran |
-| `notes` | string | Opsional |
-| `proof_file` | file | jpg/jpeg/png/pdf, max 5MB |
-
-**Response**
-```json
-{
-    "success": true,
-    "message": "Bukti pembayaran berhasil diupload",
-    "data": {
-        "id": 5,
-        "payment_code": "PAY-20260524-34AA3E",
-        "rental_id": 1,
-        "payment_month": 5,
-        "payment_year": "2026",
-        "amount": "2000000.00",
-        "payment_status": "menunggu_verifikasi"
-    }
-}
-```
-</details>
-
-<details>
-<summary><b>POST /api/payments/{id}/verify</b></summary>
-
-**Response**
-```json
-{
-    "success": true,
-    "message": "Pembayaran berhasil diverifikasi",
-    "data": { ... }
-}
-```
-</details>
-
-<details>
-<summary><b>POST /api/payments/{id}/reject</b></summary>
-
-**Request**
-```json
-{
-    "rejection_reason": "Bukti pembayaran tidak jelas"
-}
-```
-
-**Response**
-```json
-{
-    "success": true,
-    "message": "Pembayaran berhasil ditolak",
-    "data": { ... }
-}
-```
-</details>
+> CRUD Gedung, Kamar, dll masih dalam pengembangan.
 
 ---
 
 ## 👥 Role & Akses
 
-| Role | Akses |
+| Role | Akses Utama |
 |---|---|
-| `administrator` | Semua fitur + activity log |
+| `administrator` | Full akses + activity log |
 | `manager` | Verifikasi pembayaran, kelola gedung/kamar/penyewa |
-| `penyewa` | Upload pembayaran, lihat riwayat |
+| `penyewa` | Upload bukti bayar, lihat riwayat & tagihan |
 
 ---
 
-## 📦 Dependencies
+## 🚀 Sprint Progress
 
-| Package | Versi | Kegunaan |
-|---|---|---|
-| `laravel/framework` | 13.x | Framework utama |
-| `tymon/jwt-auth` | latest | Autentikasi JWT |
+### ✅ Sprint 1 — Minggu 10
 
----
+- [x] Payment API (upload, verify, reject, history)
+- [x] JWT Auth + Role Middleware
+- [x] Deploy ke Railway
+- [x] Validasi file bukti pembayaran
 
-## 📊 Sprint Progress
+### 🔜 Next Sprint
 
-### Sprint 1 — Minggu 9 ✅
-
-| Task | Status |
-|---|---|
-| Setup Laravel + koneksi DB | ✅ Done |
-| Install & konfigurasi JWT | ✅ Done |
-| CORS konfigurasi | ✅ Done |
-| AuthController (login & logout) | ✅ Done |
-| Middleware CheckRole | ✅ Done |
-| Routes `api.php` | ✅ Done |
-| Deploy BE ke Railway | ✅ Done |
-
-### Sprint 1 — Minggu 10 🔄
-
-| Task | Status |
-|---|---|
-| Models (Payment, Rental, Tenant, Room, Building) | ✅ Done |
-| PaymentController — upload bukti | ✅ Done |
-| PaymentController — verifikasi & tolak | ✅ Done |
-| PaymentController — history & pending | ✅ Done |
-| Validasi magic bytes PDF | ✅ Done |
-| CRUD Gedung, Kamar, Penyewa, Penyewaan | 📋 Todo |
+- [ ] CRUD Gedung
+- [ ] CRUD Kamar
+- [ ] CRUD Tenant
+- [ ] Rental Management
 
 ---
 
 <div align="center">
 
-*Last updated: Sprint 1 Minggu 10 — Mei 2026*
+*Last updated: 24 Mei 2026*
 
 </div>
