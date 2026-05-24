@@ -38,7 +38,9 @@ class PaymentService
             $header = fread($handle, 5);
             fclose($handle);
 
-            if ()
+            if ($header !== '%PDF-') {
+                throw new \Exception('File PDF tidak valid', 422);
+            }
         }
 
         // Simpan file
