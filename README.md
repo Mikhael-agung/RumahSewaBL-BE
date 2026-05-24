@@ -1,6 +1,9 @@
+Ini README updated bro, tinggal copy-paste replace yang lama:
+
+```markdown
 # 🏠 Rumah Sewa Biru Laut — Backend Documentation
 
-> Dokumentasi sementara progress Backend (BE) — Sprint 1 Minggu 9
+> Dokumentasi Backend (BE) — Sprint 1 Minggu 10
 
 ---
 
@@ -13,7 +16,8 @@
 | **Stack BE** | Laravel 13 + JWT Auth |
 | **Stack FE** | Flutter Web |
 | **Database** | MySQL (Hostinger) |
-| **Status** | 🟡 Sprint 1 — In Progress |
+| **BE Live** | https://rumahsewabl-be-production.up.railway.app |
+| **Status** | 🟢 Sprint 1 Minggu 10 — Payment API Ready |
 
 ---
 
@@ -69,7 +73,10 @@ php artisan jwt:secret
 
 # 6. Konfigurasi .env (lihat bagian ENV di bawah)
 
-# 7. Jalankan server
+# 7. Storage link
+php artisan storage:link
+
+# 8. Jalankan server
 php artisan serve
 ```
 
@@ -88,6 +95,7 @@ DB_DATABASE=u271192176_rsbl_test
 DB_USERNAME=root
 DB_PASSWORD=
 
+CACHE_STORE=file
 SESSION_DRIVER=file
 ```
 
@@ -111,26 +119,18 @@ Sistem auth menggunakan **JWT (JSON Web Token)** via package `tymon/jwt-auth`.
 8. Logout → token di-invalidate
 ```
 
-### Guard
-
-```php
-// config/auth.php
-'api' => [
-    'driver' => 'jwt',
-    'provider' => 'users',
-]
-```
-
 ---
 
 ## 📡 API Endpoints
 
-Base URL: `http://127.0.0.1:8000/api`
+Base URL Production: `https://rumahsewabl-be-production.up.railway.app/api`
+Base URL Local: `http://127.0.0.1:8000/api`
 
 ### Public (tidak perlu token)
 
 | Method | Endpoint | Deskripsi |
 |---|---|---|
+| GET | `/health` | Health check BE |
 | POST | `/login` | Login user |
 
 ### Protected (perlu Bearer Token)
@@ -145,11 +145,13 @@ Base URL: `http://127.0.0.1:8000/api`
 | POST | `/payments/{id}/verify` | manager, administrator | Verifikasi pembayaran |
 | POST | `/payments/{id}/reject` | manager, administrator | Tolak pembayaran |
 
-### Contoh request login
+---
 
-```json
+## 📨 Request & Response
+
+### Login
+```
 POST /api/login
-Headers: Accept: application/json
 Content-Type: application/json
 
 {
@@ -157,14 +159,12 @@ Content-Type: application/json
     "password": "admin123"
 }
 ```
-
-### Contoh response sukses
-
+Response:
 ```json
 {
     "success": true,
     "message": "Login berhasil",
-    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "token": "eyJ0eXAiOiJKV1Qi...",
     "user": {
         "id": 1,
         "username": "admin01",
@@ -173,51 +173,74 @@ Content-Type: application/json
 }
 ```
 
-### Contoh request dengan token
-
+### Upload Bukti Pembayaran
 ```
-GET /api/me
-Headers:
-  Accept: application/json
-  Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+POST /api/payments/upload
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+
+payment_month  : 5          (integer, 1-12)
+payment_year   : 2026       (integer)
+amount         : 2000000    (numeric)
+notes          : opsional   (string)
+proof_file     : file       (jpg/jpeg/png/pdf, max 5MB)
+```
+Response:
+```json
+{
+    "success": true,
+    "message": "Bukti pembayaran berhasil diupload",
+    "data": {
+        "id": 5,
+        "payment_code": "PAY-20260524-34AA3E",
+        "rental_id": 1,
+        "payment_month": 5,
+        "payment_year": "2026",
+        "amount": "2000000.00",
+        "payment_status": "menunggu_verifikasi",
+        ...
+    }
+}
 ```
 
----
-
-## 📁 Struktur Folder
-
+### Verifikasi Pembayaran
 ```
-app/
-├── Http/
-│   ├── Controllers/Api/
-│   │   ├── AuthController.php       ✅ Done
-│   │   ├── PaymentController.php    🔄 In Progress
-│   │   ├── BuildingController.php   📋 Todo
-│   │   ├── RoomController.php       📋 Todo
-│   │   ├── TenantController.php     📋 Todo
-│   │   ├── RentalController.php     📋 Todo
-│   │   └── ActivityLogController.php 📋 Todo
-│   ├── Middleware/
-│   │   └── CheckRole.php            ✅ Done
-│   └── Requests/
-│       ├── LoginRequest.php
-│       ├── StorePaymentRequest.php
-│       └── VerifyPaymentRequest.php
-├── Models/
-│   ├── User.php                     ✅ Done (JWT)
-│   ├── Payment.php                  📋 Todo
-│   └── ...
-└── Services/
-    ├── AuthService.php
-    ├── PaymentService.php
-    └── ActivityLogService.php
+POST /api/payments/{id}/verify
+Authorization: Bearer <token_manager>
+```
+Response:
+```json
+{
+    "success": true,
+    "message": "Pembayaran berhasil diverifikasi",
+    "data": { ... }
+}
+```
+
+### Tolak Pembayaran
+```
+POST /api/payments/{id}/reject
+Authorization: Bearer <token_manager>
+Content-Type: application/json
+
+{
+    "rejection_reason": "Bukti pembayaran tidak jelas"
+}
+```
+Response:
+```json
+{
+    "success": true,
+    "message": "Pembayaran berhasil ditolak",
+    "data": { ... }
+}
 ```
 
 ---
 
 ## 📊 Sprint Progress
 
-### Sprint 1 — Minggu 9 (Sekarang)
+### Sprint 1 — Minggu 9 ✅ DONE
 
 | Task | Status |
 |---|---|
@@ -227,37 +250,39 @@ app/
 | AuthController (login & logout) | ✅ Done |
 | Middleware CheckRole | ✅ Done |
 | Routes api.php | ✅ Done |
-| Halaman Login Flutter | 📋 Todo |
+| Deploy BE ke Railway | ✅ Done |
 
 ### Sprint 1 — Minggu 10
 
 | Task | Status |
 |---|---|
-| PaymentController — upload bukti | 📋 Todo |
-| PaymentController — verifikasi & tolak | 📋 Todo |
-| CRUD Gedung, Kamar, Penyewa | 📋 Todo |
-| Halaman Upload Bukti (Flutter) | 📋 Todo |
-| Halaman Verifikasi (Flutter) | 📋 Todo |
+| Models (Payment, Rental, Tenant, Room, Building) | ✅ Done |
+| PaymentController — upload bukti | ✅ Done |
+| PaymentController — verifikasi & tolak | ✅ Done |
+| PaymentController — history & pending | ✅ Done |
+| Validasi magic bytes PDF | ✅ Done |
+| CRUD Gedung, Kamar, Penyewa, Penyewaan | 📋 Todo |
 
 ---
 
 ## 👥 Role & Akses
 
-| Role | ID | Akses |
-|---|---|---|
-| administrator | 1 | Semua fitur + activity log |
-| manager | 2 | Kelola gedung, kamar, penyewa, verifikasi pembayaran |
-| penyewa | 3 | Upload pembayaran, lihat riwayat |
+| Role | Akses |
+|---|---|
+| administrator | Semua fitur + activity log |
+| manager | Verifikasi pembayaran, kelola gedung/kamar/penyewa |
+| penyewa | Upload pembayaran, lihat riwayat |
 
 ---
 
 ## 📦 Packages
 
-| Package | Versi | Kegunaan |
-|---|---|---|
-| `laravel/framework` | 13.x | Framework utama |
-| `tymon/jwt-auth` | latest | Autentikasi JWT |
+| Package | Kegunaan |
+|---|---|
+| `laravel/framework` 13.x | Framework utama |
+| `tymon/jwt-auth` | Autentikasi JWT |
 
 ---
 
-> Last updated: Sprint 1 Minggu 9 — Mei 2026
+> Last updated: Sprint 1 Minggu 10 — Mei 2026
+```
