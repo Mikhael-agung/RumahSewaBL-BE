@@ -27,7 +27,7 @@
 | **Stack BE** | Laravel 13 + JWT Auth |
 | **Stack FE** | Flutter Web |
 | **Database** | MySQL (Hostinger) |
-| **BE Live** | https://rumahsewabl-be-production.up.railway.app |
+| **BE Live** | rumahsewabl-be-production-v2.up.railway.app |
 
 ---
 
