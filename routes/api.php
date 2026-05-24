@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PaymentController;
 
+Route::get('/health', fn() => response()->json(['status' => 'ok']));
+
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
 
