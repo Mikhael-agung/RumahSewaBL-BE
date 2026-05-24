@@ -33,6 +33,14 @@ class PaymentService
             throw new \Exception('Pembayaran bulan ini sudah pernah diupload', 409);
         }
 
+        if ($file->getMimeType() === 'application/pdf') {
+            $handle = fopen($file->getRealPath(), 'rb');
+            $header = fread($handle, 5);
+            fclose($handle);
+
+            if ()
+        }
+
         // Simpan file
         $fileName  = time() . '_' . $file->getClientOriginalName();
         $filePath  = $file->storeAs('payment_proofs', $fileName, 'public');
