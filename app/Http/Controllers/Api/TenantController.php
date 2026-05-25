@@ -3,33 +3,74 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreTenantRequest;
+use App\Http\Requests\UpdateTenantRequest;
 use App\Models\Tenant;
-use Illuminate\Http\Response;
 
 class TenantController extends Controller
 {
     public function index()
     {
-        // memang belum ada isinya
+        $tenants = Tenant::with('user')->latest()->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data penyewa berhasil diambil',
+            'data'    => $tenants,
+        ]);
     }
 
-    public function store()
+    public function store(StoreTenantRequest $request)
     {
-        // memang belum ada isinya
+        $tenant = Tenant::create($request->validated());
+        $tenant->load('user');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Penyewa berhasil ditambahkan',
+            'data'    => $tenant,
+        ], 201);
     }
 
     public function show(Tenant $tenant)
     {
-        // memang belum ada isinya
+        $tenant->load('user', 'rentals.room.building');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Detail penyewa berhasil diambil',
+            'data'    => $tenant,
+        ]);
     }
 
-    public function update(Tenant $tenant)
+    public function update(UpdateTenantRequest $request, Tenant $tenant)
     {
-        // memang belum ada isinya
+        $tenant->update($request->validated());
+        $tenant->load('user');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Penyewa berhasil diperbarui',
+            'data'    => $tenant,
+        ]);
     }
 
     public function destroy(Tenant $tenant)
     {
-        // memang belum ada isinya
+        if ($tenant->rentals()->where('rental_status', 'active')->whereNull('deleted_at')->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Penyewa tidak bisa dihapus karena masih memiliki penyewaan aktif',
+                'data'    => null,
+            ], 422);
+        }
+
+        $tenant->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Penyewa berhasil dihapus',
+            'data'    => null,
+        ]);
     }
 }
