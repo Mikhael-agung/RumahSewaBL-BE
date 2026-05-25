@@ -60,7 +60,7 @@
 
 ### Requirements
 
-- PHP >= 8.2
+- PHP >= 8.3
 - Composer >= 2.x
 - MySQL >= 8.0
 - Laragon (local dev)
