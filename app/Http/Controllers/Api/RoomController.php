@@ -3,33 +3,75 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreRoomRequest;
+use App\Http\Requests\UpdateRoomRequest;
 use App\Models\Room;
-use Illuminate\Http\Response;
 
 class RoomController extends Controller
 {
     public function index()
     {
-        // memang belum ada isinya
+        $rooms = Room::with('building')->latest()->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data kamar berhasil diambil',
+            'data'    => $rooms,
+        ]);
     }
 
-    public function store()
+    public function store(StoreRoomRequest $request)
     {
-        // memang belum ada isinya
+        $room = Room::create($request->validated());
+        $room->load('building');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kamar berhasil ditambahkan',
+            'data'    => $room,
+        ], 201);
     }
 
     public function show(Room $room)
     {
-        // memang belum ada isinya
+        $room->load('building', 'rentals.tenant');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Detail kamar berhasil diambil',
+            'data'    => $room,
+        ]);
     }
 
-    public function update(Room $room)
+    public function update(UpdateRoomRequest $request, Room $room)
     {
-        // memang belum ada isinya
+        $room->update($request->validated());
+        $room->load('building');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kamar berhasil diperbarui',
+            'data'    => $room,
+        ]);
     }
 
     public function destroy(Room $room)
     {
-        // memang belum ada isinya
+        // Cek apakah ada rental aktif
+        if ($room->rentals()->where('rental_status', 'active')->whereNull('deleted_at')->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kamar tidak bisa dihapus karena masih ada penyewaan aktif',
+                'data'    => null,
+            ], 422);
+        }
+
+        $room->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kamar berhasil dihapus',
+            'data'    => null,
+        ]);
     }
 }
