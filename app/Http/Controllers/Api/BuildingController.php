@@ -3,34 +3,73 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreBuildingRequest;
+use App\Http\Requests\UpdateBuildingRequest;
 use App\Models\Building;
-use Illuminate\Http\Response;
-
 
 class BuildingController extends Controller
 {
     public function index()
     {
-        // memang belum ada isinya
+        $buildings = Building::withCount('rooms')->latest()->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data gedung berhasil diambil',
+            'data'    => $buildings,
+        ]);
     }
 
-    public function store()
+    public function store(StoreBuildingRequest $request)
     {
-        // memang belum ada isinya
+        $building = Building::create($request->validated());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gedung berhasil ditambahkan',
+            'data'    => $building,
+        ], 201);
     }
 
     public function show(Building $building)
     {
-        // memang belum ada isinya
+        $building->load('rooms');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Detail gedung berhasil diambil',
+            'data'    => $building,
+        ]);
     }
 
-    public function update(Building $building)
+    public function update(UpdateBuildingRequest $request, Building $building)
     {
-        // memang belum ada isinya
+        $building->update($request->validated());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gedung berhasil diperbarui',
+            'data'    => $building,
+        ]);
     }
 
     public function destroy(Building $building)
     {
-        // memang belum ada isinya
+        // Cek apakah ada kamar aktif
+        if ($building->rooms()->whereNull('deleted_at')->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gedung tidak bisa dihapus karena masih memiliki kamar aktif',
+                'data'    => null,
+            ], 422);
+        }
+
+        $building->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gedung berhasil dihapus',
+            'data'    => null,
+        ]);
     }
 }
