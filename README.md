@@ -1249,22 +1249,6 @@ Urutan pembuatan data wajib mengikuti hierarki ini. Kamar butuh gedung, penyewaa
 
 ---
 
-## 🔀 Git Branch
-
-Konvensi penamaan: `feature/<siapa-atau-apa>/<deskripsi-singkat>`
-
-| Branch | Untuk siapa / apa | Isi |
-|---|---|---|
-| `main` | Production | Kode stabil, sudah di-review |
-| `develop` | Tim BE | Base branch untuk semua fitur |
-| `feature/auth/login-logout-jwt` | Auth flow | AuthController, JWT, CheckRole middleware |
-| `feature/manager/payment-verification` | Manager | Pending, verify, reject pembayaran |
-| `feature/penyewa/payment-upload` | Penyewa | Upload bukti, history pembayaran |
-| `feature/manager/crud-building` | Manager | CRUD Gedung + FormRequest |
-| `feature/manager/crud-room` | Manager | CRUD Kamar + FormRequest |
-| `feature/manager/crud-tenant` | Manager | CRUD Penyewa + FormRequest |
-| `feature/manager/crud-rental` | Manager | CRUD Penyewaan + business logic room status |
-
 ### Cara pakai
 
 ```bash
