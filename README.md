@@ -2,12 +2,6 @@
 
 <div align="center">
 
-![Laravel](https://img.shields.io/badge/Laravel-13.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![Flutter](https://img.shields.io/badge/Flutter-Web-02569B?style=for-the-badge&logo=flutter&logoColor=white)
-![Railway](https://img.shields.io/badge/Railway-Deploy-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)
-
 **Dokumentasi Backend — Sprint 1 Minggu 10**
 
 🟢 Status: **CRUD API Ready**
@@ -18,7 +12,7 @@
 
 ---
 
-## 📋 Informasi Project
+## Informasi Project
 
 | Field | Detail |
 |---|---|
@@ -31,7 +25,7 @@
 
 ---
 
-## 🗄️ Database
+## Database
 
 | Field | Value |
 |---|---|
@@ -56,7 +50,7 @@
 
 ---
 
-## ⚙️ Setup & Instalasi
+## Setup & Instalasi
 
 ### Requirements
 
@@ -112,7 +106,7 @@ SESSION_DRIVER=file
 
 ---
 
-## 🔐 Autentikasi
+##  Autentikasi
 
 Sistem auth menggunakan **JWT (JSON Web Token)** via package `tymon/jwt-auth`.
 
@@ -128,7 +122,7 @@ Flutter  ◄──token───────────────────
 
 ---
 
-## 🔄 Flow Backend
+## Flow Backend
 
 ```
 Request masuk
@@ -185,7 +179,7 @@ Error response:
 
 ---
 
-## 🧠 Logic Bisnis
+## Logic Bisnis
 
 ### Hierarki Data
 
@@ -200,7 +194,7 @@ Urutan pembuatan data wajib mengikuti hierarki ini. Kamar butuh gedung, penyewaa
 
 ---
 
-### 🏢 Gedung (Building)
+###  Gedung (Building)
 
 | Rule | Detail |
 |---|---|
@@ -209,7 +203,7 @@ Urutan pembuatan data wajib mengikuti hierarki ini. Kamar butuh gedung, penyewaa
 
 ---
 
-### 🚪 Kamar (Room)
+###  Kamar (Room)
 
 | Field | Nilai valid |
 |---|---|
@@ -223,7 +217,7 @@ Urutan pembuatan data wajib mengikuti hierarki ini. Kamar butuh gedung, penyewaa
 
 ---
 
-### 👤 Penyewa (Tenant)
+###  Penyewa (Tenant)
 
 | Rule | Detail |
 |---|---|
@@ -249,7 +243,7 @@ Urutan pembuatan data wajib mengikuti hierarki ini. Kamar butuh gedung, penyewaa
 
 ---
 
-### 💳 Pembayaran (Payment)
+### Pembayaran (Payment)
 
 | Field | Nilai valid |
 |---|---|
@@ -264,35 +258,35 @@ Urutan pembuatan data wajib mengikuti hierarki ini. Kamar butuh gedung, penyewaa
 
 ---
 
-## 📡 API Endpoints
+##  API Endpoints
 
 | Base | URL |
 |---|---|
 | **Production** | `https://rumahsewabl-be-production-v2.up.railway.app/api` |
 | **Local** | `http://127.0.0.1:8000/api` |
 
-### 🔓 Public
+###  Public
 
 | Method | Endpoint | Deskripsi |
 |---|---|---|
 | `GET` | `/health` | Health check BE |
 | `POST` | `/login` | Login user |
 
-### 🔒 Protected — Semua Role (Bearer Token)
+###  Protected — Semua Role (Bearer Token)
 
 | Method | Endpoint | Deskripsi |
 |---|---|---|
 | `POST` | `/logout` | Logout |
 | `GET` | `/me` | Data user yang sedang login |
 
-### 🔒 Protected — Penyewa Only
+###  Protected — Penyewa Only
 
 | Method | Endpoint | Deskripsi |
 |---|---|---|
 | `POST` | `/payments/upload` | Upload bukti pembayaran |
 | `GET` | `/payments/history` | Riwayat pembayaran milik sendiri |
 
-### 🔒 Protected — Manager & Administrator
+###  Protected — Manager & Administrator
 
 | Method | Endpoint | Deskripsi |
 |---|---|---|
@@ -322,7 +316,7 @@ Urutan pembuatan data wajib mengikuti hierarki ini. Kamar butuh gedung, penyewaa
 
 ---
 
-## 📨 Contoh Request & Response
+##  Contoh Request & Response
 
 <details>
 <summary><b>POST /api/login</b></summary>
@@ -1230,7 +1224,7 @@ Urutan pembuatan data wajib mengikuti hierarki ini. Kamar butuh gedung, penyewaa
 
 ---
 
-## 👥 Role & Akses
+##  Role & Akses
 
 | Role | Akses |
 |---|---|
@@ -1240,7 +1234,7 @@ Urutan pembuatan data wajib mengikuti hierarki ini. Kamar butuh gedung, penyewaa
 
 ---
 
-## 📦 Dependencies
+##  Dependencies
 
 | Package | Versi | Kegunaan |
 |---|---|---|
@@ -1263,7 +1257,7 @@ git push origin feature/manager/crud-building
 
 ---
 
-## 📊 Sprint Progress
+## Sprint Progress
 
 ### Sprint 1 — Minggu 9 ✅
 
