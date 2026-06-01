@@ -48,12 +48,27 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        JWTAuth::invalidate(JWTAuth::getToken());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Logout berhasil',
-        ]);
+        try {
+            JWTAuth::invalidate(JWTAuth::getToken());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Logout berhasil',
+            ]);
+            
+        } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token tidak valid',
+            ], 401);
+
+        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token tidak ditemukan',
+            ], 400);
+        }
     }
 
     public function me(Request $request)
