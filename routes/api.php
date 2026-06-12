@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BuildingController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\RentalController;
+use App\Http\Controllers\Api\ActivityLogController;
 
 Route::get('/health', fn() => response()->json(['status' => 'ok']));
 
@@ -34,5 +35,11 @@ Route::middleware('auth:api')->group(function () {
         Route::apiResource('rooms', RoomController::class);
         Route::apiResource('tenants', TenantController::class);
         Route::apiResource('rentals', RentalController::class);
+    });
+
+    // Administrator only
+    Route::middleware('role:administrator')->group(function () {
+        Route::get('/activity-logs', [ActivityLogController::class, 'index']);
+        Route::get('/activity-logs/{activityLog}', [ActivityLogController::class, 'show']);
     });
 });

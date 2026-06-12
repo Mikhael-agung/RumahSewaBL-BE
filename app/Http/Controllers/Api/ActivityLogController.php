@@ -5,11 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Services\ActivityLogService;
-use Illuminate\Http\Response;
 
 class ActivityLogController extends Controller
 {
-    protected $activityLogService;
+    protected ActivityLogService $activityLogService;
 
     public function __construct(ActivityLogService $activityLogService)
     {
@@ -18,11 +17,21 @@ class ActivityLogController extends Controller
 
     public function index()
     {
-        // memang belum ada isinya
+        $logs = $this->activityLogService->getAll();
+
+        return response()->json([
+            'success' => true,
+            'data'    => $logs,
+        ], 200);
     }
 
     public function show(ActivityLog $activityLog)
     {
-        // memang belum ada isinya
+        $log = $this->activityLogService->getById($activityLog->id);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $log,
+        ], 200);
     }
 }
