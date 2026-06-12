@@ -9,10 +9,30 @@ use App\Models\Building;
 
 class BuildingController extends Controller
 {
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     * 
+     * @response array{
+     *   success: bool,
+     *   message: string,
+     *   data: array<int, array{
+     *     id: int,
+     *     building_code: string,
+     *     building_name: string,
+     *     building_address: string|null,
+     *     description: string|null,
+     *     rooms_count: int,
+     *     created_at: string,
+     *     updated_at: string,
+     *     deleted_at: string|null
+     *   }>
+     * }
+     */
+
     public function index()
     {
         $buildings = Building::withCount('rooms')->latest()->get();
-
         return response()->json([
             'success' => true,
             'message' => 'Data gedung berhasil diambil',
