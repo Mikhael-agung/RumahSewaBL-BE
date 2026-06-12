@@ -71,6 +71,48 @@ class PaymentService
         return $payment;
     }
 
+    /**
+     * Input pembayaran manual (offline) oleh manager/administrator.
+     * payment_method = 'manual', payment_status langsung 'terverifikasi'.
+     */
+    public function manual(array $data): Payment
+    {
+        $user = JWTAuth::parseToken()->authenticate();
+
+        $rental = Rental::findOrFail($data['rental_id']);
+
+        // Cek duplikasi — satu bulan satu kali (kecuali yang sudah ditolak)
+        $exists = Payment::where('rental_id', $rental->id)
+            ->where('payment_month', $data['payment_month'])
+            ->where('payment_year', $data['payment_year'])
+            ->whereNotIn('payment_status', ['ditolak'])
+            ->exists();
+
+        if ($exists) {
+            throw new \Exception('Pembayaran untuk bulan dan tahun ini sudah tercatat', 409);
+        }
+
+        // Generate payment code
+        $code = 'PAY-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+
+        $payment = Payment::create([
+            'payment_code'   => $code,
+            'rental_id'      => $rental->id,
+            'payment_month'  => $data['payment_month'],
+            'payment_year'   => $data['payment_year'],
+            'amount'         => $data['amount'],
+            'payment_date'   => $data['payment_date'],
+            'payment_method' => 'manual',
+            'payment_status' => 'terverifikasi',
+            'notes'          => $data['notes'] ?? null,
+            'verified_by'    => $user->id,
+            'verified_at'    => now(),
+            'created_by'     => $user->id,
+        ]);
+
+        return $payment;
+    }
+
     public function history(): array
     {
         $user = JWTAuth::parseToken()->authenticate();

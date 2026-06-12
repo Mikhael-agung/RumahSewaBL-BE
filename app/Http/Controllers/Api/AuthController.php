@@ -3,86 +3,73 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
+use App\Services\AuthService;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    protected AuthService $authService;
+    protected ActivityLogService $activityLogService;
+
+    public function __construct(AuthService $authService, ActivityLogService $activityLogService)
     {
-        $request->validate([
-            'username' => 'required|string',
-            'password' => 'required|string',
-        ]);
+        $this->authService = $authService;
+        $this->activityLogService = $activityLogService;
+    }
 
-        $user = DB::table('users')
-            ->join('roles', 'users.role_id', '=', 'roles.id')
-            ->where('users.username', $request->username)
-            ->where('users.is_active', 1)
-            ->select('users.*', 'roles.name as role_name')
-            ->first();
+    public function login(LoginRequest $request)
+    {
+        $result = $this->authService->login($request->username, $request->password);
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Username atau password salah',
-            ], 401);
+        if ($result['success']) {
+            $this->activityLogService->log(
+                $result['user']['id'],
+                'login',
+                'User ' . $result['user']['username'] . ' login ke sistem'
+            );
         }
 
-        $userModel = \App\Models\User::find($user->id);
-        $token = JWTAuth::fromUser($userModel);
+        $status = $result['status'];
+        unset($result['status']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Login berhasil',
-            'token'   => $token,
-            'user'    => [
-                'id'       => $user->id,
-                'username' => $user->username,
-                'role'     => $user->role_name,
-            ],
-        ]);
+        return response()->json($result, $status);
     }
 
     public function logout(Request $request)
     {
-
+        // Ambil user sebelum token di-invalidate
         try {
-            JWTAuth::invalidate(JWTAuth::getToken());
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Logout berhasil',
-            ]);
-            
-        } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token tidak valid',
-            ], 401);
-
-        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token tidak ditemukan',
-            ], 400);
+            $user = JWTAuth::parseToken()->authenticate();
+        } catch (\Throwable $e) {
+            $user = null;
         }
+
+        $result = $this->authService->logout();
+
+        if ($result['success'] && $user) {
+            $this->activityLogService->log(
+                $user->id,
+                'logout',
+                'User ' . $user->username . ' logout dari sistem'
+            );
+        }
+
+        $status = $result['status'];
+        unset($result['status']);
+
+        return response()->json($result, $status);
     }
 
     public function me(Request $request)
     {
-        $user = JWTAuth::parseToken()->authenticate();
-        $role = DB::table('roles')->where('id', $user->role_id)->value('name');
+        $result = $this->authService->me();
 
-        return response()->json([
-            'success' => true,
-            'user'    => [
-                'id'       => $user->id,
-                'username' => $user->username,
-                'role'     => $role,
-            ],
-        ]);
+        $status = $result['status'];
+        unset($result['status']);
+
+        return response()->json($result, $status);
     }
 }

@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class LoginRequest extends FormRequest
+class UpdatePaymentDeadlineRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,8 +14,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'username' => 'required|string',
-            'password' => 'required|string',
+            'deadline_date' => 'required|date',
         ];
     }
 }
