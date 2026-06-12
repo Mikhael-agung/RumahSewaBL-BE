@@ -10,8 +10,12 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 class PaymentDeadlineService
 {
     /**
-     * Ambil deadline untuk bulan & tahun tertentu, beserta status bayar
-     * tiap rental aktif untuk bulan tersebut.
+     * Retrieve the payment deadline for a specific month and year and list active rentals with their payment status for that period.
+     *
+     * @return array{deadline: ?\App\Models\PaymentDeadline, rentals: \Illuminate\Support\Collection<int, array{rental_id: int, rental_code: string, tenant: \App\Models\Tenant|null, room: \App\Models\Room|null, is_paid: bool}>}
+     *   An associative array with:
+     *     - `deadline`: the PaymentDeadline model for the given month/year, or `null` if none exists.
+     *     - `rentals`: a collection of rental status entries; each entry contains `rental_id`, `rental_code`, the related `tenant`, the related `room`, and `is_paid` which is `true` when a verified payment exists for that rental in the given month/year.
      */
     public function getByMonth(int $month, int $year): array
     {
@@ -47,8 +51,13 @@ class PaymentDeadlineService
     }
 
     /**
-     * Set deadline baru untuk bulan & tahun tertentu.
-     * Throw exception (409) jika deadline untuk bulan & tahun tersebut sudah ada.
+     * Create a new payment deadline for the specified month and year.
+     *
+     * @param int $month Month number (1-12).
+     * @param int $year Four-digit year.
+     * @param string $deadlineDate Deadline date string in `YYYY-MM-DD` format.
+     * @return PaymentDeadline The newly created PaymentDeadline model.
+     * @throws \Exception If a deadline for the given month and year already exists (HTTP-style code 409).
      */
     public function setDeadline(int $month, int $year, string $deadlineDate): PaymentDeadline
     {
@@ -71,9 +80,16 @@ class PaymentDeadlineService
     }
 
     /**
-     * Update deadline yang sudah ada untuk bulan & tahun tertentu.
-     * Throw exception (404) jika belum ada.
-     */
+         * Update the payment deadline date for a specific month and year.
+         *
+         * Updates the existing PaymentDeadline's `deadline_date` and returns the refreshed model.
+         *
+         * @param int $month Month number (1-12) for which the deadline applies.
+         * @param int $year Four-digit year for which the deadline applies.
+         * @param string $deadlineDate Date string for the new deadline (expected format: `Y-m-d`).
+         * @return PaymentDeadline The updated PaymentDeadline model.
+         * @throws \Exception If no PaymentDeadline exists for the given month and year (exception code 404).
+         */
     public function updateDeadline(int $month, int $year, string $deadlineDate): PaymentDeadline
     {
         $deadline = PaymentDeadline::where('payment_month', $month)
@@ -92,8 +108,12 @@ class PaymentDeadlineService
     }
 
     /**
-     * Ambil semua deadline yang sudah lewat (deadline_date < hari ini)
-     * dan masih ada rental aktif yang belum bayar untuk bulan tersebut.
+     * List payment deadlines before today that have active rentals unpaid for that month.
+     *
+     * For each overdue deadline returns an associative array entry containing the overdue PaymentDeadline model
+     * and a collection of active rentals for that month which have not been verified as paid.
+     *
+     * @return array<int, array{deadline: \App\Models\PaymentDeadline, unpaid_rentals: \Illuminate\Support\Collection}> Array of entries, each with `deadline` and `unpaid_rentals`.
      */
     public function getOverdue(): array
     {

@@ -17,6 +17,11 @@ class ActivityLog extends Model
     public $timestamps = false;
 
     protected $dates = ['created_at'];
+    /**
+     * Get the user associated with this activity log.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo The associated User relation.
+     */
     public function user() {
         return $this->belongsTo(User::class);
     }
