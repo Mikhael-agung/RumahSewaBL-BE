@@ -1,133 +1,146 @@
 <?php
 
-namespace App\Services;
+namespace App\Http\Controllers\Api;
 
-use App\Models\Payment;
-use App\Models\Rental;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\StorePaymentRequest;
+use App\Http\Requests\StorePaymentManualRequest;
+use App\Http\Requests\VerifyPaymentRequest;
+use App\Services\PaymentService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
-class PaymentService
+class PaymentController extends Controller
 {
-    public function upload(array $data, UploadedFile $file): Payment
+    protected PaymentService $paymentService;
+
+    public function __construct(PaymentService $paymentService)
     {
-        $user = JWTAuth::parseToken()->authenticate();
+        $this->paymentService = $paymentService;
+    }
 
-        // Ambil rental aktif milik penyewa ini
-        $rental = Rental::where('tenant_id', function ($query) use ($user) {
-            $query->select('id')
-                ->from('tenants')
-                ->where('user_id', $user->id)
-                ->limit(1);
-        })->where('rental_status', 'aktif')->firstOrFail();
+    // POST /api/payments/upload (penyewa)
+    public function upload(StorePaymentRequest $request): JsonResponse
+    {
+        try {
+            $payment = $this->paymentService->upload(
+                $request->validated(),
+                $request->file('proof_file')
+            );
 
-        // Cek duplikasi — satu bulan satu kali
-        $exists = Payment::where('rental_id', $rental->id)
-            ->where('payment_month', $data['payment_month'])
-            ->where('payment_year', $data['payment_year'])
-            ->whereNotIn('payment_status', ['ditolak'])
-            ->exists();
+            return response()->json([
+                'success' => true,
+                'message' => 'Bukti pembayaran berhasil diupload',
+                'data'    => $payment,
+            ], 201);
 
-        if ($exists) {
-            throw new \Exception('Pembayaran bulan ini sudah pernah diupload', 409);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
         }
+    }
 
-        if ($file->getMimeType() === 'application/pdf') {
-            $handle = fopen($file->getRealPath(), 'rb');
-            $header = fread($handle, 5);
-            fclose($handle);
+    // POST /api/payments/manual (manager/administrator)
+    public function manual(StorePaymentManualRequest $request): JsonResponse
+    {
+        try {
+            $payment = $this->paymentService->manual($request->validated());
 
-            if ($header !== '%PDF-') {
-                throw new \Exception('File PDF tidak valid', 422);
-            }
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembayaran manual berhasil dicatat',
+                'data'    => $payment,
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
         }
+    }
 
-        // Simpan file
-        $fileName  = time() . '_' . $file->getClientOriginalName();
-        $filePath  = $file->storeAs('payment_proofs', $fileName, 'public');
+    // GET /api/payments/history (penyewa)
+    public function history(): JsonResponse
+    {
+        try {
+            $payments = $this->paymentService->history();
 
-        // Generate payment code
-        $code = 'PAY-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+            return response()->json([
+                'success' => true,
+                'data'    => $payments,
+            ]);
 
-        $payment = Payment::create([
-            'payment_code'    => $code,
-            'rental_id'       => $rental->id,
-            'payment_month'   => $data['payment_month'],
-            'payment_year'    => $data['payment_year'],
-            'amount'          => $data['amount'],
-            'payment_date'    => now(),
-            'payment_method'  => 'upload',
-            'payment_status'  => 'menunggu_verifikasi',
-            'proof_file_name' => $file->getClientOriginalName(),
-            'proof_file_path' => $filePath,
-            'proof_file_size' => $file->getSize(),
-            'proof_file_mime' => $file->getMimeType(),
-            'uploaded_at'     => now(),
-            'notes'           => $data['notes'] ?? null,
-            'created_by'      => $user->id,
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // GET /api/payments/pending (manager/administrator)
+    public function pending(): JsonResponse
+    {
+        try {
+            $payments = $this->paymentService->pending();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $payments,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // POST /api/payments/{id}/verify (manager/administrator)
+    public function verify(Request $request, int $id): JsonResponse
+    {
+        try {
+            $payment = $this->paymentService->verify($id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembayaran berhasil diverifikasi',
+                'data'    => $payment,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    // POST /api/payments/{id}/reject (manager/administrator)
+    public function reject(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'rejection_reason' => 'required|string|max:500',
         ]);
 
-        return $payment;
-    }
+        try {
+            $payment = $this->paymentService->reject($id, $request->rejection_reason);
 
-    public function history(): array
-    {
-        $user = JWTAuth::parseToken()->authenticate();
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembayaran berhasil ditolak',
+                'data'    => $payment,
+            ]);
 
-        $rental = Rental::where('tenant_id', function ($query) use ($user) {
-            $query->select('id')
-                ->from('tenants')
-                ->where('user_id', $user->id)
-                ->limit(1);
-        })->where('rental_status', 'aktif')->first();
-
-        if (!$rental) {
-            return [];
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
         }
-
-        return Payment::where('rental_id', $rental->id)
-            ->orderByDesc('payment_year')
-            ->orderByDesc('payment_month')
-            ->get()
-            ->toArray();
-    }
-
-    public function pending(): array
-    {
-        return Payment::where('payment_status', 'menunggu_verifikasi')
-            ->with(['rental.tenant', 'rental.room.building'])
-            ->orderBy('uploaded_at')
-            ->get()
-            ->toArray();
-    }
-
-    public function verify(int $id): Payment
-    {
-        $user    = JWTAuth::parseToken()->authenticate();
-        $payment = Payment::findOrFail($id);
-
-        $payment->update([
-            'payment_status' => 'terverifikasi',
-            'verified_by'    => $user->id,
-            'verified_at'    => now(),
-        ]);
-
-        return $payment->fresh();
-    }
-
-    public function reject(int $id, string $reason): Payment
-    {
-        $user    = JWTAuth::parseToken()->authenticate();
-        $payment = Payment::findOrFail($id);
-
-        $payment->update([
-            'payment_status'   => 'ditolak',
-            'rejection_reason' => $reason,
-            'verified_by'      => $user->id,
-            'verified_at'      => now(),
-        ]);
-
-        return $payment->fresh();
     }
 }

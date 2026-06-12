@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\RentalController;
 use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\PaymentDeadlineController;
 
 Route::get('/health', fn() => response()->json(['status' => 'ok']));
 
@@ -29,12 +30,18 @@ Route::middleware('auth:api')->group(function () {
     // Manager & Administrator
     Route::middleware('role:manager,administrator')->group(function () {
         Route::get('/payments/pending', [PaymentController::class, 'pending']);
+        Route::post('/payments/manual', [PaymentController::class, 'manual']);
         Route::post('/payments/{id}/verify', [PaymentController::class, 'verify']);
         Route::post('/payments/{id}/reject', [PaymentController::class, 'reject']);
         Route::apiResource('buildings', BuildingController::class);
         Route::apiResource('rooms', RoomController::class);
         Route::apiResource('tenants', TenantController::class);
         Route::apiResource('rentals', RentalController::class);
+
+        Route::get('/deadlines', [PaymentDeadlineController::class, 'index']);
+        Route::post('/deadlines', [PaymentDeadlineController::class, 'store']);
+        Route::patch('/deadlines/{month}/{year}', [PaymentDeadlineController::class, 'update']);
+        Route::get('/deadlines/overdue', [PaymentDeadlineController::class, 'overdue']);
     });
 
     // Administrator only
