@@ -10,6 +10,21 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class PaymentService
 {
+    /**
+     * Create a payment record from an uploaded proof file for the authenticated user's active rental.
+     *
+     * $data must contain:
+     * - `payment_month` (int|string) Month for the payment.
+     * - `payment_year` (int|string) Year for the payment.
+     * - `amount` (int|float) Payment amount.
+     * - `notes` (string|null) Optional note.
+     *
+     * @param array $data Payment attributes and metadata (see description for expected keys).
+     * @param \Illuminate\Http\UploadedFile $file Uploaded proof file (PDF expected).
+     * @return \App\Models\Payment The created Payment model.
+     * @throws \Exception Thrown with code 409 if a non-rejected payment for the same month/year already exists.
+     * @throws \Exception Thrown with code 422 if an uploaded file declared as PDF does not have a valid PDF header.
+     */
     public function upload(array $data, UploadedFile $file): Payment
     {
         $user = JWTAuth::parseToken()->authenticate();
@@ -72,8 +87,24 @@ class PaymentService
     }
 
     /**
-     * Input pembayaran manual (offline) oleh manager/administrator.
-     * payment_method = 'manual', payment_status langsung 'terverifikasi'.
+     * Record a manual (offline) payment for a rental and mark it as verified.
+     *
+     * Creates a `Payment` with `payment_method = 'manual'`, `payment_status = 'terverifikasi'`,
+     * sets verification metadata (`verified_by`, `verified_at`) to the authenticated user,
+     * and returns the created `Payment`.
+     *
+     * @param array $data {
+     *     Data required to create the manual payment.
+     *
+     *     @type int    $rental_id     ID of the rental to which the payment applies.
+     *     @type int    $payment_month Month number of the payment.
+     *     @type int    $payment_year  Year of the payment.
+     *     @type float  $amount        Payment amount.
+     *     @type string $payment_date  Date of payment (Y-m-d or other accepted format).
+     *     @type string|null $notes    Optional notes for the payment.
+     * }
+     * @return \App\Models\Payment The newly created Payment model.
+     * @throws \Exception If a non-rejected payment for the same rental/month/year already exists (HTTP 409).
      */
     public function manual(array $data): Payment
     {
@@ -113,6 +144,13 @@ class PaymentService
         return $payment;
     }
 
+    /**
+     * Retrieve payment history for the authenticated user's active rental.
+     *
+     * Returns payments ordered by `payment_year` then `payment_month`, both descending.
+     *
+     * @return array An array of payment records for the active rental; an empty array if no active rental is found.
+     */
     public function history(): array
     {
         $user = JWTAuth::parseToken()->authenticate();
