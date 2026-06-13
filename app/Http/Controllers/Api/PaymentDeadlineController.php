@@ -13,24 +13,11 @@ class PaymentDeadlineController extends Controller
 {
     protected PaymentDeadlineService $paymentDeadlineService;
 
-    /**
-     * Create a new controller instance and set the payment deadline service.
-     *
-     * @param PaymentDeadlineService $paymentDeadlineService The service used to manage payment deadlines.
-     */
     public function __construct(PaymentDeadlineService $paymentDeadlineService)
     {
         $this->paymentDeadlineService = $paymentDeadlineService;
     }
 
-    /**
-     * Return payment deadlines for the given month and year.
-     *
-     * Reads `month` and `year` from query parameters and defaults to the current month and year when absent.
-     *
-     * @param Request $request HTTP request containing optional `month` and `year` query parameters.
-     * @return JsonResponse JSON with `success: true` and `data` containing the deadlines for the specified month and year.
-     */
     public function index(Request $request): JsonResponse
     {
         $month = (int) ($request->query('month') ?? now()->month);
@@ -44,16 +31,6 @@ class PaymentDeadlineController extends Controller
         ], 200);
     }
 
-    /**
-     * Create a payment deadline for the specified month and year.
-     *
-     * Accepts validated input and persists a deadline record.
-     *
-     * @param StorePaymentDeadlineRequest $request Request containing `payment_month`, `payment_year`, and `deadline_date`.
-     * @return JsonResponse JSON with one of the following shapes:
-     *                      - Success (HTTP 201): `{ "success": true, "message": "Deadline berhasil disimpan", "data": <deadline> }`
-     *                      - Error (HTTP exception code or 500): `{ "success": false, "message": "<error message>" }`
-     */
     public function store(StorePaymentDeadlineRequest $request): JsonResponse
     {
         try {
@@ -77,20 +54,6 @@ class PaymentDeadlineController extends Controller
         }
     }
 
-    /**
-     * Update the payment deadline for the specified month and year.
-     *
-     * Updates the stored deadline date for the deadline identified by the given month and year using
-     * the `deadline_date` provided in the request.
-     *
-     * @param UpdatePaymentDeadlineRequest $request Request containing `deadline_date`.
-     * @param int $month Month number (1-12) identifying the deadline to update.
-     * @param int $year Four-digit year identifying the deadline to update.
-     * @return JsonResponse JSON object with:
-     *                      - `success` (bool): `true` on success, `false` on error.
-     *                      - `message` (string): Human-readable status message.
-     *                      - `data` (mixed): The updated deadline resource when `success` is `true`.
-     */
     public function update(UpdatePaymentDeadlineRequest $request, int $month, int $year): JsonResponse
     {
         try {
@@ -114,11 +77,6 @@ class PaymentDeadlineController extends Controller
         }
     }
 
-    /**
-     * Retrieve overdue payment deadlines.
-     *
-     * @return JsonResponse JSON response with `success: true` and `data` containing the list of overdue deadlines.
-     */
     public function overdue(): JsonResponse
     {
         $data = $this->paymentDeadlineService->getOverdue();
