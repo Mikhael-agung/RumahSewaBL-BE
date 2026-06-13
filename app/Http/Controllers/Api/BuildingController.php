@@ -28,7 +28,7 @@ class BuildingController extends Controller
      *     deleted_at: string|null
      *   }>
      * }
-     */
+     */ 
 
     public function index()
     {
