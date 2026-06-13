@@ -13,13 +13,13 @@ use App\Http\Controllers\Api\PaymentDeadlineController;
 Route::get('/health', fn() => response()->json(['status' => 'ok']));
 
 // Public routes
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
 
 // Protected routes
 Route::middleware('auth:api')->group(function () {
 
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
+    Route::get('/me', [AuthController::class, 'me'])->name('auth.me');
 
     // Penyewa only
     Route::middleware('role:penyewa')->group(function () {
@@ -38,15 +38,15 @@ Route::middleware('auth:api')->group(function () {
         Route::apiResource('tenants', TenantController::class);
         Route::apiResource('rentals', RentalController::class);
 
-        Route::get('/deadlines', [PaymentDeadlineController::class, 'index']);
-        Route::post('/deadlines', [PaymentDeadlineController::class, 'store']);
-        Route::patch('/deadlines/{month}/{year}', [PaymentDeadlineController::class, 'update']);
-        Route::get('/deadlines/overdue', [PaymentDeadlineController::class, 'overdue']);
+        Route::get('/deadlines', [PaymentDeadlineController::class, 'index'])->name('paymentdeadline.index');
+        Route::post('/deadlines', [PaymentDeadlineController::class, 'store'])->name('paymentdeadline.store');
+        Route::patch('/deadlines/{month}/{year}', [PaymentDeadlineController::class, 'update'])->name('paymentdeadline.update');
+        Route::get('/deadlines/overdue', [PaymentDeadlineController::class, 'overdue'])->name('paymentdeadline.overdue');
     });
 
     // Administrator only
     Route::middleware('role:administrator')->group(function () {
-        Route::get('/activity-logs', [ActivityLogController::class, 'index']);
-        Route::get('/activity-logs/{activityLog}', [ActivityLogController::class, 'show']);
+        Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activitylog.index');
+        Route::get('/activity-logs/{activityLog}', [ActivityLogController::class, 'show'])->name('activitylog.show');
     });
 });
