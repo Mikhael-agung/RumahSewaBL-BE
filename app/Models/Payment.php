@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property string $payment_status Status: menunggu_verifikasi, terverifikasi, ditolak
+ */
 class Payment extends Model
 {
     use softDeletes;

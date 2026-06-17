@@ -12,7 +12,6 @@ class StoreTenantRequest extends FormRequest
     {
         return [
             'tenant_code'  => 'required|string|max:50|unique:tenants,tenant_code',
-            'user_id'      => 'nullable|exists:users,id',
             'full_name'    => 'required|string|max:255',
             'phone_number' => 'required|string|max:20',
             'email'        => 'required|email|unique:tenants,email',

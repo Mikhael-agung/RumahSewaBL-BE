@@ -5,7 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTenantRequest;
 use App\Http\Requests\UpdateTenantRequest;
+use App\Models\Role;
 use App\Models\Tenant;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class TenantController extends Controller
 {
@@ -22,13 +27,46 @@ class TenantController extends Controller
 
     public function store(StoreTenantRequest $request)
     {
-        $tenant = Tenant::create($request->validated());
+        $validated = $request->validated();
+
+        // Generate username dari tenant_code (lowercase, tanpa karakter selain alfanumerik)
+        $username = strtolower(preg_replace('/[^A-Za-z0-9]/', '', $validated['tenant_code']));
+
+        // Generate password random 8 karakter (huruf besar, kecil, angka)
+        $plainPassword = Str::password(8, false, true, false, false);
+
+        [$tenant, $user] = DB::transaction(function () use ($validated, $username, $plainPassword) {
+            $penyewaRoleId = Role::where('name', 'penyewa')->value('id');
+
+            $user = User::create([
+                'role_id'   => $penyewaRoleId,
+                'username'  => $username,
+                'password'  => Hash::make($plainPassword),
+                'is_active' => 1,
+            ]);
+
+            $tenant = Tenant::create([
+                'tenant_code'  => $validated['tenant_code'],
+                'user_id'      => $user->id,
+                'full_name'    => $validated['full_name'],
+                'phone_number' => $validated['phone_number'],
+                'email'        => $validated['email'],
+            ]);
+
+            return [$tenant, $user];
+        });
+
         $tenant->load('user');
 
         return response()->json([
             'success' => true,
             'message' => 'Penyewa berhasil ditambahkan',
             'data'    => $tenant,
+            'account' => [
+                'username' => $user->username,
+                'password' => $plainPassword,
+                'note'     => 'Simpan kredensial ini, password tidak dapat ditampilkan kembali setelah ini.',
+            ],
         ], 201);
     }
 
@@ -57,7 +95,7 @@ class TenantController extends Controller
 
     public function destroy(Tenant $tenant)
     {
-        if ($tenant->rentals()->where('rental_status', 'active')->whereNull('deleted_at')->exists()) {
+        if ($tenant->rentals()->where('rental_status', 'aktif')->whereNull('deleted_at')->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Penyewa tidak bisa dihapus karena masih memiliki penyewaan aktif',

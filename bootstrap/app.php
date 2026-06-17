@@ -27,5 +27,35 @@ return Application::configure(basePath: dirname(__DIR__))
         ) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         });
+
+        $exceptions->render(function (
+            \Tymon\JWTAuth\Exceptions\TokenExpiredException $e,
+            \Illuminate\Http\Request $request
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token sudah expired, silakan login ulang',
+            ], 401);
+        });
+
+        $exceptions->render(function (
+            \Tymon\JWTAuth\Exceptions\TokenInvalidException $e,
+            \Illuminate\Http\Request $request
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token tidak valid',
+            ], 401);
+        });
+
+        $exceptions->render(function (
+            \Tymon\JWTAuth\Exceptions\JWTException $e,
+            \Illuminate\Http\Request $request
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token tidak ditemukan',
+            ], 401);
+        });
     })
     ->create();
