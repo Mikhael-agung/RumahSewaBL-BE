@@ -9,14 +9,6 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class PaymentDeadlineService
 {
-    /**
-     * Retrieve the payment deadline for a specific month and year and list active rentals with their payment status for that period.
-     *
-     * @return array{deadline: ?\App\Models\PaymentDeadline, rentals: \Illuminate\Support\Collection<int, array{rental_id: int, rental_code: string, tenant: \App\Models\Tenant|null, room: \App\Models\Room|null, is_paid: bool}>}
-     *   An associative array with:
-     *     - `deadline`: the PaymentDeadline model for the given month/year, or `null` if none exists.
-     *     - `rentals`: a collection of rental status entries; each entry contains `rental_id`, `rental_code`, the related `tenant`, the related `room`, and `is_paid` which is `true` when a verified payment exists for that rental in the given month/year.
-     */
     public function getByMonth(int $month, int $year): array
     {
         $deadline = PaymentDeadline::with('creator')
