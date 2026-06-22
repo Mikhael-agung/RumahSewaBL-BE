@@ -72,4 +72,14 @@ class AuthController extends Controller
 
         return response()->json($result, $status);
     }
+
+    public function refresh(Request $request)
+{
+    $result = $this->authService->refresh();
+
+    $status = $result['status'];
+    unset($result['status']);
+
+    return response()->json($result, $status);
+}
 }

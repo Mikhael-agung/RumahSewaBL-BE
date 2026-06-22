@@ -85,4 +85,30 @@ class AuthService
             'status' => 200,
         ];
     }
+
+    public function refresh(): array
+{
+    try {
+        $newToken = JWTAuth::refresh(JWTAuth::getToken());
+
+        return [
+            'success' => true,
+            'message' => 'Token berhasil diperbarui',
+            'token'   => $newToken,
+            'status'  => 200,
+        ];
+    } catch (TokenInvalidException $e) {
+        return [
+            'success' => false,
+            'message' => 'Token tidak valid',
+            'status'  => 401,
+        ];
+    } catch (JWTException $e) {
+        return [
+            'success' => false,
+            'message' => 'Token tidak ditemukan',
+            'status'  => 400,
+        ];
+    }
+}
 }

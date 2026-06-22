@@ -14,6 +14,7 @@ Route::get('/health', fn() => response()->json(['status' => 'ok']));
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
+Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('auth:api')->name('auth.refresh');
 
 // Protected routes
 Route::middleware('auth:api')->group(function () {
