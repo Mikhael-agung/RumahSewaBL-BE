@@ -57,5 +57,5 @@ return Application::configure(basePath: dirname(__DIR__))
             'message' => 'Token tidak ditemukan',
         ], 401);
     });
-    })
-    ->create();
+})
+->create();
