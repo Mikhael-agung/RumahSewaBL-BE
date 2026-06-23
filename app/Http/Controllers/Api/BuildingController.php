@@ -6,29 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBuildingRequest;
 use App\Http\Requests\UpdateBuildingRequest;
 use App\Models\Building;
+use App\Services\ActivityLogService;
+use Illuminate\Support\Facades\Auth;
 
 class BuildingController extends Controller
 {
+    protected ActivityLogService $activityLogService;
 
-    /**
-     * @return \Illuminate\Http\JsonResponse
-     * 
-     * @response array{
-     *   success: bool,
-     *   message: string,
-     *   data: array<int, array{
-     *     id: int,
-     *     building_code: string,
-     *     building_name: string,
-     *     building_address: string|null,
-     *     description: string|null,
-     *     rooms_count: int,
-     *     created_at: string,
-     *     updated_at: string,
-     *     deleted_at: string|null
-     *   }>
-     * }
-     */ 
+    public function __construct(ActivityLogService $activityLogService)
+    {
+        $this->activityLogService = $activityLogService;
+    }
 
     public function index()
     {
@@ -43,6 +31,12 @@ class BuildingController extends Controller
     public function store(StoreBuildingRequest $request)
     {
         $building = Building::create($request->validated());
+
+        $this->activityLogService->log(
+            Auth::id(),
+            'create_building',
+            'Menambahkan gedung baru: ' . $building->building_name
+        );
 
         return response()->json([
             'success' => true,
@@ -66,6 +60,12 @@ class BuildingController extends Controller
     {
         $building->update($request->validated());
 
+        $this->activityLogService->log(
+            Auth::id(),
+            'update_building',
+            'Memperbarui gedung: ' . $building->building_name
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Gedung berhasil diperbarui',
@@ -75,7 +75,6 @@ class BuildingController extends Controller
 
     public function destroy(Building $building)
     {
-        // Cek apakah ada kamar aktif
         if ($building->rooms()->whereNull('deleted_at')->exists()) {
             return response()->json([
                 'success' => false,
@@ -84,7 +83,14 @@ class BuildingController extends Controller
             ], 422);
         }
 
+        $name = $building->building_name;
         $building->delete();
+
+        $this->activityLogService->log(
+            Auth::id(),
+            'delete_building',
+            'Menghapus gedung: ' . $name
+        );
 
         return response()->json([
             'success' => true,
