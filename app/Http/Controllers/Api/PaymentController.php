@@ -4,27 +4,35 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePaymentRequest;
-use App\Http\Requests\VerifyPaymentRequest;
+use App\Services\ActivityLogService;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PaymentController extends Controller
 {
-    protected $paymentService;
+    protected PaymentService $paymentService;
+    protected ActivityLogService $activityLogService;
 
-    public function __construct(PaymentService $paymentService)
+    public function __construct(PaymentService $paymentService, ActivityLogService $activityLogService)
     {
         $this->paymentService = $paymentService;
+        $this->activityLogService = $activityLogService;
     }
 
-    // POST /api/payments/upload (penyewa)
     public function upload(StorePaymentRequest $request): JsonResponse
     {
         try {
             $payment = $this->paymentService->upload(
                 $request->validated(),
                 $request->file('proof_file')
+            );
+
+            $this->activityLogService->log(
+                Auth::id(),
+                'upload_payment',
+                'Mengupload bukti pembayaran untuk rental ID: ' . $payment->rental_id
             );
 
             return response()->json([
@@ -41,17 +49,14 @@ class PaymentController extends Controller
         }
     }
 
-    // GET /api/payments/history (penyewa)
     public function history(): JsonResponse
     {
         try {
             $payments = $this->paymentService->history();
-
             return response()->json([
                 'success' => true,
                 'data'    => $payments,
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -60,17 +65,14 @@ class PaymentController extends Controller
         }
     }
 
-    // GET /api/payments/pending (manager/administrator)
     public function pending(): JsonResponse
     {
         try {
             $payments = $this->paymentService->pending();
-
             return response()->json([
                 'success' => true,
                 'data'    => $payments,
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -79,11 +81,16 @@ class PaymentController extends Controller
         }
     }
 
-    // POST /api/payments/{id}/verify (manager/administrator)
     public function verify(Request $request, int $id): JsonResponse
     {
         try {
             $payment = $this->paymentService->verify($id);
+
+            $this->activityLogService->log(
+                Auth::id(),
+                'verify_payment',
+                'Memverifikasi pembayaran ID: ' . $id
+            );
 
             return response()->json([
                 'success' => true,
@@ -99,7 +106,6 @@ class PaymentController extends Controller
         }
     }
 
-    // POST /api/payments/{id}/reject (manager/administrator)
     public function reject(Request $request, int $id): JsonResponse
     {
         $request->validate([
@@ -108,6 +114,12 @@ class PaymentController extends Controller
 
         try {
             $payment = $this->paymentService->reject($id, $request->rejection_reason);
+
+            $this->activityLogService->log(
+                Auth::id(),
+                'reject_payment',
+                'Menolak pembayaran ID: ' . $id . ' — alasan: ' . $request->rejection_reason
+            );
 
             return response()->json([
                 'success' => true,
