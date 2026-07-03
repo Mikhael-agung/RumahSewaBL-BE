@@ -7,16 +7,21 @@ use App\Http\Requests\StoreRentalRequest;
 use App\Http\Requests\UpdateRentalRequest;
 use App\Models\Rental;
 use App\Models\Room;
+use App\Services\ActivityLogService;
 use Illuminate\Support\Facades\Auth;
 
 class RentalController extends Controller
 {
+    protected ActivityLogService $activityLogService;
+
+    public function __construct(ActivityLogService $activityLogService)
+    {
+        $this->activityLogService = $activityLogService;
+    }
+
     public function index()
     {
-        $rentals = Rental::with(['tenant', 'room.building', 'createdBy'])
-            ->latest()
-            ->get();
-
+        $rentals = Rental::with(['tenant', 'room.building', 'createdBy'])->latest()->get();
         return response()->json([
             'success' => true,
             'message' => 'Data penyewaan berhasil diambil',
@@ -28,7 +33,6 @@ class RentalController extends Controller
     {
         $room = Room::findOrFail($request->room_id);
 
-        // Cek status kamar
         if ($room->room_status !== 'available') {
             return response()->json([
                 'success' => false,
@@ -42,11 +46,14 @@ class RentalController extends Controller
         ]);
 
         $rental = Rental::create($data);
-
-        // Update status kamar jadi occupied
         $room->update(['room_status' => 'occupied']);
-
         $rental->load(['tenant', 'room.building', 'createdBy']);
+
+        $this->activityLogService->log(
+            Auth::id(),
+            'create_rental',
+            'Membuat penyewaan baru: ' . $rental->rental_code . ' untuk penyewa ' . $rental->tenant->full_name
+        );
 
         return response()->json([
             'success' => true,
@@ -58,7 +65,6 @@ class RentalController extends Controller
     public function show(Rental $rental)
     {
         $rental->load(['tenant', 'room.building', 'createdBy', 'payments']);
-
         return response()->json([
             'success' => true,
             'message' => 'Detail penyewaan berhasil diambil',
@@ -71,13 +77,18 @@ class RentalController extends Controller
         $oldStatus = $rental->rental_status;
         $rental->update($request->validated());
 
-        // Kalau status berubah jadi ended/cancelled, bebaskan kamar
         $newStatus = $rental->fresh()->rental_status;
         if ($oldStatus === 'active' && in_array($newStatus, ['ended', 'cancelled'])) {
             $rental->room->update(['room_status' => 'available']);
         }
 
         $rental->load(['tenant', 'room.building', 'createdBy']);
+
+        $this->activityLogService->log(
+            Auth::id(),
+            'update_rental',
+            'Memperbarui penyewaan: ' . $rental->rental_code . ' (status: ' . $oldStatus . ' → ' . $newStatus . ')'
+        );
 
         return response()->json([
             'success' => true,
@@ -96,7 +107,14 @@ class RentalController extends Controller
             ], 422);
         }
 
+        $code = $rental->rental_code;
         $rental->delete();
+
+        $this->activityLogService->log(
+            Auth::id(),
+            'delete_rental',
+            'Menghapus penyewaan: ' . $code
+        );
 
         return response()->json([
             'success' => true,
