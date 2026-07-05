@@ -21,6 +21,7 @@ Route::middleware('auth:api')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
     Route::get('/me', [AuthController::class, 'me'])->name('auth.me');
+    Route::get('/payments/{id}/download', [PaymentController::class, 'download'])->name('payments.download');
 
     // Penyewa only
     Route::middleware('role:penyewa')->group(function () {

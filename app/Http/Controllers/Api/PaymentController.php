@@ -134,4 +134,23 @@ class PaymentController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
+
+    public function download(int $id) {
+        try {
+            $file = $this->paymentService->download($id);
+            
+            $this->activityLogService->log(
+                Auth::id(),
+                'download_payment_proof',
+                'Mengunduh bukti pembayaran ID: ' . $id
+            );
+
+            return response()->download($file['path'], $file['name'], ['Content-Type' => $file['mime']]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
 }
