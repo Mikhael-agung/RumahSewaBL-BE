@@ -5,11 +5,19 @@ namespace App\Services;
 use App\Models\Payment;
 use App\Models\Rental;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class PaymentService
 {
+    protected NotificationService $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Create a payment record from an uploaded proof file for the authenticated user's active rental.
      *
@@ -35,7 +43,7 @@ class PaymentService
                 ->from('tenants')
                 ->where('user_id', $user->id)
                 ->limit(1);
-        })->where('rental_status', 'aktif')->firstOrFail();
+        })->where('rental_status', 'active')->firstOrFail();
 
         // Cek duplikasi — satu bulan satu kali
         $exists = Payment::where('rental_id', $rental->id)
@@ -82,6 +90,14 @@ class PaymentService
             'notes'           => $data['notes'] ?? null,
             'created_by'      => $user->id,
         ]);
+
+        $this->notificationService->sendToRoles(
+            ['manager', 'administrator'],
+            'payment_uploaded',
+            'Bukti pembayaran baru',
+            "Penyewa mengupload bukti pembayaran untuk periode {$data['payment_month']}/{$data['payment_year']}, menunggu verifikasi.",
+            ['payment_id' => $payment->id, 'rental_id' => $rental->id]
+        );
 
         return $payment;
     }
@@ -160,7 +176,7 @@ class PaymentService
                 ->from('tenants')
                 ->where('user_id', $user->id)
                 ->limit(1);
-        })->where('rental_status', 'aktif')->first();
+        })->where('rental_status', 'active')->first();
 
         if (!$rental) {
             return [];
@@ -185,7 +201,7 @@ class PaymentService
     public function verify(int $id): Payment
     {
         $user    = JWTAuth::parseToken()->authenticate();
-        $payment = Payment::findOrFail($id);
+        $payment = Payment::with('rental.tenant')->findOrFail($id);
 
         $payment->update([
             'payment_status' => 'terverifikasi',
@@ -193,13 +209,23 @@ class PaymentService
             'verified_at'    => now(),
         ]);
 
+        if ($payment->rental && $payment->rental->tenant) {
+            $this->notificationService->send(
+                $payment->rental->tenant->user_id,
+                'payment_verified',
+                'Pembayaran terverifikasi',
+                "Pembayaran periode {$payment->payment_month}/{$payment->payment_year} sudah diverifikasi.",
+                ['payment_id' => $payment->id]
+            );
+        }
+
         return $payment->fresh();
     }
 
     public function reject(int $id, string $reason): Payment
     {
         $user    = JWTAuth::parseToken()->authenticate();
-        $payment = Payment::findOrFail($id);
+        $payment = Payment::with('rental.tenant')->findOrFail($id);
 
         $payment->update([
             'payment_status'   => 'ditolak',
@@ -208,6 +234,112 @@ class PaymentService
             'verified_at'      => now(),
         ]);
 
+        if ($payment->rental && $payment->rental->tenant) {
+            $this->notificationService->send(
+                $payment->rental->tenant->user_id,
+                'payment_rejected',
+                'Pembayaran ditolak',
+                "Pembayaran periode {$payment->payment_month}/{$payment->payment_year} ditolak. Alasan: {$reason}",
+                ['payment_id' => $payment->id]
+            );
+        }
+
         return $payment->fresh();
+    }
+
+    /**
+     * Resolve the storage path and original file name for a payment's proof file,
+     * after verifying the authenticated user is allowed to access it.
+     *
+     * A `penyewa` may only access proof files belonging to their own rental.
+     * `manager` and `administrator` may access any payment's proof file.
+     *
+     * @param int $id Payment ID.
+     * @return array{path: string, name: string, mime: string} Absolute disk path, original file name, and mime type.
+     * @throws \Exception If the payment/proof does not exist (404) or the user is not authorized (403).
+     */
+    public function download(int $id): array
+    {
+        $user = JWTAuth::parseToken()->authenticate();
+
+        $payment = Payment::with('rental.tenant')->findOrFail($id);
+
+        if (!$payment->proof_file_path) {
+            throw new \Exception('Bukti pembayaran tidak ditemukan untuk pembayaran ini', 404);
+        }
+
+        $userRole = DB::table('roles')->where('id', $user->role_id)->value('name');
+        $isStaff  = in_array($userRole, ['manager', 'administrator']);
+        $isOwner  = $payment->rental
+            && $payment->rental->tenant
+            && $payment->rental->tenant->user_id === $user->id;
+
+        if (!$isStaff && !$isOwner) {
+            throw new \Exception('Anda tidak berhak mengakses bukti pembayaran ini', 403);
+        }
+
+        if (!Storage::disk('public')->exists($payment->proof_file_path)) {
+            throw new \Exception('File bukti pembayaran tidak ditemukan di server', 404);
+        }
+
+        return [
+            'path' => Storage::disk('public')->path($payment->proof_file_path),
+            'name' => $payment->proof_file_name ?? basename($payment->proof_file_path),
+            'mime' => $payment->proof_file_mime ?? 'application/octet-stream',
+        ];
+    }
+
+    /**
+     * Resolve and authorize the data needed to render a payment invoice/kwitansi PDF.
+     *
+     * Only payments with `payment_status = 'terverifikasi'` have an invoice.
+     * A `penyewa` may only access their own rental's invoice. `manager` and
+     * `administrator` may access any invoice.
+     *
+     * @param int $id Payment ID.
+     * @return array{payment: Payment, tenant: ?\App\Models\Tenant, room: ?\App\Models\Room, building: ?\App\Models\Building, periodLabel: string, paymentMethodLabel: string, verifiedByName: ?string, filename: string}
+     * @throws \Exception If not found (404), not yet verified (422), or not authorized (403).
+     */
+    public function generateInvoice(int $id): array
+    {
+        $user = JWTAuth::parseToken()->authenticate();
+
+        $payment = Payment::with(['rental.tenant', 'rental.room.building', 'verifiedBy'])->findOrFail($id);
+
+        if ($payment->payment_status !== 'terverifikasi') {
+            throw new \Exception('Kwitansi hanya tersedia untuk pembayaran yang sudah terverifikasi', 422);
+        }
+
+        $userRole = DB::table('roles')->where('id', $user->role_id)->value('name');
+        $isStaff  = in_array($userRole, ['manager', 'administrator']);
+        $isOwner  = $payment->rental
+            && $payment->rental->tenant
+            && $payment->rental->tenant->user_id === $user->id;
+
+        if (!$isStaff && !$isOwner) {
+            throw new \Exception('Anda tidak berhak mengakses kwitansi ini', 403);
+        }
+
+        $methodLabels = [
+            'upload' => 'Transfer (Upload Bukti)',
+            'manual' => 'Manual / Tunai',
+        ];
+
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
+        return [
+            'payment'             => $payment,
+            'tenant'              => $payment->rental->tenant ?? null,
+            'room'                => $payment->rental->room ?? null,
+            'building'            => $payment->rental->room->building ?? null,
+            'periodLabel'         => ($monthNames[$payment->payment_month] ?? $payment->payment_month) . ' ' . $payment->payment_year,
+            'paymentMethodLabel'  => $methodLabels[$payment->payment_method] ?? $payment->payment_method,
+            'verifiedByName'      => $payment->verifiedBy->username ?? null,
+            'filename'            => 'Kwitansi-' . $payment->payment_code . '.pdf',
+        ];
     }
 }
