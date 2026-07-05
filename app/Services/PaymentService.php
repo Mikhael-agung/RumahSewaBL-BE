@@ -11,12 +11,12 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class PaymentService
 {
-    protected NotificationService $notificationService;
+    // protected NotificationService $notificationService;
 
-    public function __construct(NotificationService $notificationService)
-    {
-        $this->notificationService = $notificationService;
-    }
+    // public function __construct(NotificationService $notificationService)
+    // {
+    //     $this->notificationService = $notificationService;
+    // }
 
     /**
      * Create a payment record from an uploaded proof file for the authenticated user's active rental.
