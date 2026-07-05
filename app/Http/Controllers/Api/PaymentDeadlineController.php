@@ -5,17 +5,21 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePaymentDeadlineRequest;
 use App\Http\Requests\UpdatePaymentDeadlineRequest;
+use App\Services\ActivityLogService;
 use App\Services\PaymentDeadlineService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PaymentDeadlineController extends Controller
 {
     protected PaymentDeadlineService $paymentDeadlineService;
+    protected ActivityLogService $activityLogService;
 
-    public function __construct(PaymentDeadlineService $paymentDeadlineService)
+    public function __construct(PaymentDeadlineService $paymentDeadlineService, ActivityLogService $activityLogService)
     {
         $this->paymentDeadlineService = $paymentDeadlineService;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(Request $request): JsonResponse
@@ -40,6 +44,12 @@ class PaymentDeadlineController extends Controller
                 $request->deadline_date
             );
 
+            $this->activityLogService->log(
+                Auth::id(),
+                'create_payment_deadline',
+                "Mengatur deadline pembayaran untuk {$request->payment_month}/{$request->payment_year}"
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Deadline berhasil disimpan',
@@ -61,6 +71,12 @@ class PaymentDeadlineController extends Controller
                 $month,
                 $year,
                 $request->deadline_date
+            );
+
+            $this->activityLogService->log(
+                Auth::id(),
+                'update_payment_deadline',
+                "Mengupdate deadline pembayaran untuk {$month}/{$year}"
             );
 
             return response()->json([
