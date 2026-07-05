@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Payment;
 use App\Models\Rental;
+use App\Services\NotificationService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -11,12 +12,12 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class PaymentService
 {
-    // protected NotificationService $notificationService;
+    protected NotificationService $notificationService;
 
-    // public function __construct(NotificationService $notificationService)
-    // {
-    //     $this->notificationService = $notificationService;
-    // }
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
 
     /**
      * Create a payment record from an uploaded proof file for the authenticated user's active rental.
@@ -93,10 +94,8 @@ class PaymentService
 
         $this->notificationService->sendToRoles(
             ['manager', 'administrator'],
-            'payment_uploaded',
             'Bukti pembayaran baru',
-            "Penyewa mengupload bukti pembayaran untuk periode {$data['payment_month']}/{$data['payment_year']}, menunggu verifikasi.",
-            ['payment_id' => $payment->id, 'rental_id' => $rental->id]
+            "Penyewa mengupload bukti pembayaran untuk periode {$data['payment_month']}/{$data['payment_year']} (ID pembayaran #{$payment->id}), menunggu verifikasi."
         );
 
         return $payment;
@@ -212,10 +211,8 @@ class PaymentService
         if ($payment->rental && $payment->rental->tenant) {
             $this->notificationService->send(
                 $payment->rental->tenant->user_id,
-                'payment_verified',
                 'Pembayaran terverifikasi',
-                "Pembayaran periode {$payment->payment_month}/{$payment->payment_year} sudah diverifikasi.",
-                ['payment_id' => $payment->id]
+                "Pembayaran periode {$payment->payment_month}/{$payment->payment_year} (ID #{$payment->id}) sudah diverifikasi."
             );
         }
 
@@ -237,10 +234,8 @@ class PaymentService
         if ($payment->rental && $payment->rental->tenant) {
             $this->notificationService->send(
                 $payment->rental->tenant->user_id,
-                'payment_rejected',
                 'Pembayaran ditolak',
-                "Pembayaran periode {$payment->payment_month}/{$payment->payment_year} ditolak. Alasan: {$reason}",
-                ['payment_id' => $payment->id]
+                "Pembayaran periode {$payment->payment_month}/{$payment->payment_year} (ID #{$payment->id}) ditolak. Alasan: {$reason}"
             );
         }
 

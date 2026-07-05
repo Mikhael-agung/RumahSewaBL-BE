@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\RentalController;
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\PaymentDeadlineController;
+use App\Http\Controllers\Api\NotificationController;
 
 Route::get('/health', fn() => response()->json(['status' => 'ok']));
 
@@ -22,6 +23,11 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
     Route::get('/me', [AuthController::class, 'me'])->name('auth.me');
     Route::get('/payments/{id}/download', [PaymentController::class, 'download'])->name('payments.download');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
 
     // Penyewa only
     Route::middleware('role:penyewa')->group(function () {
