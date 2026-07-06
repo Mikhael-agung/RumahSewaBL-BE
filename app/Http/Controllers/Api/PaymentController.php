@@ -40,13 +40,12 @@ class PaymentController extends Controller
                 'message' => 'Bukti pembayaran berhasil diupload',
                 'data'    => $payment,
             ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+} catch (\Exception $e) {
+    return response()->json([
+        'success' => false,
+        'message' => $e->getMessage(),
+    ], $e->getCode() ?: 500);
+}
     }
 
     public function history(): JsonResponse
@@ -97,13 +96,12 @@ class PaymentController extends Controller
                 'message' => 'Pembayaran berhasil diverifikasi',
                 'data'    => $payment,
             ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+} catch (\Exception $e) {
+    return response()->json([
+        'success' => false,
+        'message' => $e->getMessage(),
+    ], $e->getCode() ?: 500);
+}
     }
 
     public function reject(Request $request, int $id): JsonResponse
@@ -126,19 +124,19 @@ class PaymentController extends Controller
                 'message' => 'Pembayaran berhasil ditolak',
                 'data'    => $payment,
             ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+} catch (\Exception $e) {
+    return response()->json([
+        'success' => false,
+        'message' => $e->getMessage(),
+    ], $e->getCode() ?: 500);
+}
     }
 
-    public function download(int $id) {
+    public function download(int $id)
+    {
         try {
             $file = $this->paymentService->download($id);
-            
+
             $this->activityLogService->log(
                 Auth::id(),
                 'download_payment_proof',
@@ -150,7 +148,7 @@ class PaymentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500);
         }
     }
 }
