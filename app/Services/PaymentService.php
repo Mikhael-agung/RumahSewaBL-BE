@@ -20,6 +20,23 @@ class PaymentService
     }
 
     /**
+     * Konversi angka bulan (1-12) jadi nama bulan Bahasa Indonesia.
+     *
+     * @param int|string $month
+     * @return string
+     */
+    private function monthName($month): string
+    {
+        $names = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
+        return $names[(int) $month] ?? (string) $month;
+    }
+
+    /**
      * Create a payment record from an uploaded proof file for the authenticated user's active rental.
      *
      * $data must contain:
@@ -95,7 +112,7 @@ class PaymentService
         $this->notificationService->sendToRoles(
             ['manager', 'administrator'],
             'Bukti pembayaran baru',
-            "Penyewa mengupload bukti pembayaran untuk periode {$data['payment_month']}/{$data['payment_year']} (ID pembayaran #{$payment->id}), menunggu verifikasi."
+            "Penyewa mengupload bukti pembayaran untuk periode {$this->monthName($data['payment_month'])} {$data['payment_year']} (ID pembayaran #{$payment->id}), menunggu verifikasi."
         );
 
         return $payment;
@@ -276,7 +293,7 @@ class PaymentService
             $this->notificationService->send(
                 $payment->rental->tenant->user_id,
                 'Pembayaran terverifikasi',
-                "Pembayaran periode {$payment->payment_month}/{$payment->payment_year} (ID #{$payment->id}) sudah diverifikasi."
+                "Pembayaran periode {$this->monthName($payment->payment_month)} {$payment->payment_year} (ID #{$payment->id}) sudah diverifikasi."
             );
         }
 
@@ -299,7 +316,7 @@ class PaymentService
             $this->notificationService->send(
                 $payment->rental->tenant->user_id,
                 'Pembayaran ditolak',
-                "Pembayaran periode {$payment->payment_month}/{$payment->payment_year} (ID #{$payment->id}) ditolak. Alasan: {$reason}"
+                "Pembayaran periode {$this->monthName($payment->payment_month)} {$payment->payment_year} (ID #{$payment->id}) ditolak. Alasan: {$reason}"
             );
         }
 
