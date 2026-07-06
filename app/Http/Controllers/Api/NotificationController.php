@@ -53,25 +53,38 @@ class NotificationController extends Controller {
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 500);
+        }
+    }
 
+    public function markAsRead(int $id): JsonResponse {
+
+        try {
+            $user = JWTAuth::parseToken()->authenticate();
+            $notification = $this->notificationService->markAsRead($id, $user->id);
+
+            return response()->json([
+                'success' => true,
+                'data'    => $notification,
+                'message' => 'Notifikasi berhasil ditandai sebagai dibaca',
+            ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], 500);
+            ], is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500);
         }
     }
 
-    public function markAsRead(): JsonResponse {
-        
+    public function markAllAsRead(): JsonResponse {
+
         try {
             $user = JWTAuth::parseToken()->authenticate();
             $updated = $this->notificationService->markAllAsRead($user->id);
 
             return response()->json([
                 'success' => true,
-                'data '    => ['updated_count' => $updated],
+                'data'    => ['updated_count' => $updated],
                 'message' => 'Semua notifikasi berhasil ditandai sebagai dibaca',
             ]);
 

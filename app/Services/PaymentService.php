@@ -55,13 +55,21 @@ class PaymentService
     {
         $user = JWTAuth::parseToken()->authenticate();
 
-        // Ambil rental aktif milik penyewa ini
-        $rental = Rental::where('tenant_id', function ($query) use ($user) {
-            $query->select('id')
-                ->from('tenants')
-                ->where('user_id', $user->id)
-                ->limit(1);
-        })->where('rental_status', 'active')->firstOrFail();
+        // Ambil data tenant milik user ini (otomatis exclude yang soft-deleted)
+        $tenant = \App\Models\Tenant::where('user_id', $user->id)->first();
+
+        if (!$tenant) {
+            throw new \Exception('Anda tidak memiliki data penyewa yang aktif. Silakan hubungi admin/manager.', 403);
+        }
+
+        // Ambil rental aktif milik tenant ini
+        $rental = Rental::where('tenant_id', $tenant->id)
+            ->where('rental_status', 'active')
+            ->first();
+
+        if (!$rental) {
+            throw new \Exception('Anda tidak memiliki rental aktif saat ini. Silakan hubungi admin/manager.', 403);
+        }
 
         // Cek duplikasi — satu bulan satu kali
         $exists = Payment::where('rental_id', $rental->id)
