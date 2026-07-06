@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class UpdatePaymentRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'payment_month' => 'required|integer|min:1|max:12',
+            'payment_year'  => 'required|integer|min:2020|max:2099',
+            'amount'        => 'required|numeric|min:1',
+            'notes'         => 'nullable|string|max:500',
+            'proof_file'    => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'proof_file.mimes' => 'File harus berformat JPG, PNG, atau PDF',
+            'proof_file.max'   => 'Ukuran file maksimal 5MB',
+        ];
+    }
+}

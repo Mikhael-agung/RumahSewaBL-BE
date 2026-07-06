@@ -102,6 +102,70 @@ class PaymentService
     }
 
     /**
+     * Update/timpa bukti pembayaran yang penyewa sendiri upload.
+     * Hanya bisa dilakukan kalau payment_status masih 'menunggu_verifikasi'
+     * (belum sempat diverifikasi/ditolak manager). File proof_file opsional —
+     * kalau tidak dikirim, file lama tetap dipakai, cuma data lain yang diupdate.
+     *
+     * @throws \Exception 404 kalau payment tidak ditemukan / bukan milik penyewa ini.
+     * @throws \Exception 422 kalau status payment sudah bukan 'menunggu_verifikasi'.
+     * @throws \Exception 422 kalau file PDF yang diupload tidak valid.
+     */
+    public function update(int $id, array $data, ?UploadedFile $file = null): Payment
+    {
+        $user = JWTAuth::parseToken()->authenticate();
+
+        $payment = Payment::whereHas('rental.tenant', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->find($id);
+
+        if (!$payment) {
+            throw new \Exception('Pembayaran tidak ditemukan', 404);
+        }
+
+        if ($payment->payment_status !== 'menunggu_verifikasi') {
+            throw new \Exception('Pembayaran yang sudah diverifikasi/ditolak tidak bisa diubah', 422);
+        }
+
+        $updateData = [
+            'payment_month' => $data['payment_month'],
+            'payment_year'  => $data['payment_year'],
+            'amount'        => $data['amount'],
+            'notes'         => $data['notes'] ?? $payment->notes,
+        ];
+
+        if ($file) {
+            if ($file->getMimeType() === 'application/pdf') {
+                $handle = fopen($file->getRealPath(), 'rb');
+                $header = fread($handle, 5);
+                fclose($handle);
+
+                if ($header !== '%PDF-') {
+                    throw new \Exception('File PDF tidak valid', 422);
+                }
+            }
+
+            // Hapus file lama biar storage gak numpuk sampah
+            if ($payment->proof_file_path && Storage::disk('public')->exists($payment->proof_file_path)) {
+                Storage::disk('public')->delete($payment->proof_file_path);
+            }
+
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $filePath = $file->storeAs('payment_proofs', $fileName, 'public');
+
+            $updateData['proof_file_name'] = $file->getClientOriginalName();
+            $updateData['proof_file_path'] = $filePath;
+            $updateData['proof_file_size'] = $file->getSize();
+            $updateData['proof_file_mime'] = $file->getMimeType();
+            $updateData['uploaded_at']     = now();
+        }
+
+        $payment->update($updateData);
+
+        return $payment->fresh();
+    }
+
+    /**
      * Record a manual (offline) payment for a rental and mark it as verified.
      *
      * Creates a `Payment` with `payment_method = 'manual'`, `payment_status = 'terverifikasi'`,

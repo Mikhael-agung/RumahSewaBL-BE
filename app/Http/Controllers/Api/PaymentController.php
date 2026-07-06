@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePaymentRequest;
+use App\Http\Requests\UpdatePaymentRequest;
 use App\Services\ActivityLogService;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
@@ -40,6 +41,35 @@ class PaymentController extends Controller
                 'message' => 'Bukti pembayaran berhasil diupload',
                 'data'    => $payment,
             ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500);
+        }
+    }
+
+    public function update(UpdatePaymentRequest $request, int $id): JsonResponse
+    {
+        try {
+            $payment = $this->paymentService->update(
+                $id,
+                $request->validated(),
+                $request->file('proof_file')
+            );
+
+            $this->activityLogService->log(
+                Auth::id(),
+                'update_payment',
+                'Memperbarui bukti pembayaran ID: ' . $id
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bukti pembayaran berhasil diperbarui',
+                'data'    => $payment,
+            ]);
 
         } catch (\Exception $e) {
             return response()->json([
