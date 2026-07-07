@@ -28,9 +28,18 @@ class PaymentService
     private function monthName($month): string
     {
         $names = [
-            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember',
         ];
 
         return $names[(int) $month] ?? (string) $month;
@@ -385,45 +394,19 @@ class PaymentService
      */
     public function report(array $filters = []): array
     {
-        $query = Payment::with(['rental.tenant', 'rental.room.building']);
-
-        if (!empty($filters['month'])) {
-            $query->where('payment_month', $filters['month']);
-        }
-
-        if (!empty($filters['year'])) {
-            $query->where('payment_year', $filters['year']);
-        }
-
-        if (!empty($filters['status']) && $filters['status'] !== 'all') {
-            $query->where('payment_status', $filters['status']);
-        }
-
-        if (!empty($filters['date_from'])) {
-            $query->whereDate('payment_date', '>=', $filters['date_from']);
-        }
-
-        if (!empty($filters['date_to'])) {
-            $query->whereDate('payment_date', '<=', $filters['date_to']);
-        }
-
-        if (!empty($filters['building_id'])) {
-            $query->whereHas('rental.room', function ($q) use ($filters) {
-                $q->where('building_id', $filters['building_id']);
-            });
-        }
-
-        if (!empty($filters['room_id'])) {
-            $query->whereHas('rental', function ($q) use ($filters) {
-                $q->where('room_id', $filters['room_id']);
-            });
-        }
-
-        if (!empty($filters['tenant_id'])) {
-            $query->whereHas('rental', function ($q) use ($filters) {
-                $q->where('tenant_id', $filters['tenant_id']);
-            });
-        }
+        $query = Payment::with([
+            'rental' => fn($q) => $q->withTrashed(),
+            'rental.tenant' => fn($q) => $q->withTrashed(),
+            'rental.room.building',
+        ])
+            ->when(!empty($filters['month']), fn($q) => $q->where('payment_month', $filters['month']))
+            ->when(!empty($filters['year']), fn($q) => $q->where('payment_year', $filters['year']))
+            ->when(!empty($filters['status']) && $filters['status'] !== 'all', fn($q) => $q->where('payment_status', $filters['status']))
+            ->when(!empty($filters['date_from']), fn($q) => $q->whereDate('payment_date', '>=', $filters['date_from']))
+            ->when(!empty($filters['date_to']), fn($q) => $q->whereDate('payment_date', '<=', $filters['date_to']))
+            ->when(!empty($filters['building_id']), fn($q) => $q->whereHas('rental', fn($r) => $r->withTrashed()->whereHas('room', fn($r2) => $r2->where('building_id', $filters['building_id']))))
+            ->when(!empty($filters['room_id']), fn($q) => $q->whereHas('rental', fn($r) => $r->withTrashed()->where('room_id', $filters['room_id'])))
+            ->when(!empty($filters['tenant_id']), fn($q) => $q->whereHas('rental', fn($r) => $r->withTrashed()->where('tenant_id', $filters['tenant_id'])));
 
         $payments = $query->orderByDesc('payment_date')->get();
 
@@ -521,9 +504,18 @@ class PaymentService
         ];
 
         $monthNames = [
-            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember',
         ];
 
         return [
