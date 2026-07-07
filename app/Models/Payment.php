@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property string $payment_status Status: menunggu_verifikasi, terverifikasi, ditolak
+ * @property-read string|null $proof_file_url Full public URL bukti pembayaran (accessor).
  */
 class Payment extends Model
 {
@@ -40,6 +42,20 @@ class Payment extends Model
         'verified_at'  => 'datetime',
         'amount'       => 'decimal:2',
     ];
+
+    // proof_file_path di DB cuma path relatif (mis. "payment_proofs/xxx.jpeg"),
+    // jadi selalu ikutkan proof_file_url ini di setiap response biar frontend
+    // gak perlu nyusun URL sendiri (dan gak lupa prefix /storage/).
+    protected $appends = ['proof_file_url'];
+
+    public function getProofFileUrlAttribute(): ?string
+    {
+        if (!$this->proof_file_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->proof_file_path);
+    }
 
         public function rental()
     {
