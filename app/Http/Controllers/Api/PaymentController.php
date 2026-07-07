@@ -124,7 +124,7 @@ class PaymentController extends Controller
     public function paymentVerify(Request $request): JsonResponse
     {
         $request->validate([
-            'status' => 'nullable|string|in:menunggu_verifikasi,terverifikasi,ditolak',
+            'status' => 'nullable|string|in:all,menunggu_verifikasi,terverifikasi,ditolak',
         ]);
 
         try {
@@ -170,6 +170,42 @@ class PaymentController extends Controller
                 'data'    => $payment,
             ]);
 
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500);
+        }
+    }
+
+    /**
+     * Laporan pembayaran dengan filter opsional.
+     *
+     * Query param yang didukung: month, year, status, building_id, room_id,
+     * tenant_id, date_from, date_to — semuanya opsional.
+     */
+    public function report(Request $request): JsonResponse
+    {
+        $request->validate([
+            'month'       => 'nullable|integer|min:1|max:12',
+            'year'        => 'nullable|integer|min:2000|max:2100',
+            'status'      => 'nullable|string|in:all,menunggu_verifikasi,terverifikasi,ditolak',
+            'building_id' => 'nullable|integer|exists:buildings,id',
+            'room_id'     => 'nullable|integer|exists:rooms,id',
+            'tenant_id'   => 'nullable|integer|exists:tenants,id',
+            'date_from'   => 'nullable|date',
+            'date_to'     => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        try {
+            $report = $this->paymentService->report($request->only([
+                'month', 'year', 'status', 'building_id', 'room_id', 'tenant_id', 'date_from', 'date_to',
+            ]));
+
+            return response()->json([
+                'success' => true,
+                'data'    => $report,
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

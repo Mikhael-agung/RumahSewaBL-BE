@@ -39,6 +39,7 @@ Route::middleware('auth:api')->group(function () {
     // Manager & Administrator
     Route::middleware('role:manager,administrator')->group(function () {
         Route::get('/payments/payment-verify', [PaymentController::class, 'paymentVerify']);
+        Route::get('/reports/payments', [PaymentController::class, 'report']);
         Route::post('/payments/manual', [PaymentController::class, 'manual']);
         Route::post('/payments/{id}/status', [PaymentController::class, 'updateStatus']);
         Route::apiResource('buildings', BuildingController::class);

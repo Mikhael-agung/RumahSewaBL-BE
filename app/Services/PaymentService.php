@@ -367,6 +367,82 @@ class PaymentService
     }
 
     /**
+     * Generate laporan pembayaran dengan filter opsional.
+     *
+     * Semua filter bersifat opsional — kalau tidak dikirim, dianggap tidak difilter.
+     *
+     * @param array $filters {
+     *     @type int|null    $month       Filter berdasarkan payment_month (1-12).
+     *     @type int|null    $year        Filter berdasarkan payment_year.
+     *     @type string|null $status      Filter payment_status ('menunggu_verifikasi'|'terverifikasi'|'ditolak'), null/'all' = semua status.
+     *     @type int|null    $building_id Filter berdasarkan gedung (lewat rental.room.building).
+     *     @type int|null    $room_id     Filter berdasarkan kamar (lewat rental.room).
+     *     @type int|null    $tenant_id   Filter berdasarkan penyewa (lewat rental.tenant).
+     *     @type string|null $date_from   Filter payment_date >= tanggal ini (format Y-m-d).
+     *     @type string|null $date_to     Filter payment_date <= tanggal ini (format Y-m-d).
+     * }
+     * @return array{summary: array, payments: array}
+     */
+    public function report(array $filters = []): array
+    {
+        $query = Payment::with(['rental.tenant', 'rental.room.building']);
+
+        if (!empty($filters['month'])) {
+            $query->where('payment_month', $filters['month']);
+        }
+
+        if (!empty($filters['year'])) {
+            $query->where('payment_year', $filters['year']);
+        }
+
+        if (!empty($filters['status']) && $filters['status'] !== 'all') {
+            $query->where('payment_status', $filters['status']);
+        }
+
+        if (!empty($filters['date_from'])) {
+            $query->whereDate('payment_date', '>=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query->whereDate('payment_date', '<=', $filters['date_to']);
+        }
+
+        if (!empty($filters['building_id'])) {
+            $query->whereHas('rental.room', function ($q) use ($filters) {
+                $q->where('building_id', $filters['building_id']);
+            });
+        }
+
+        if (!empty($filters['room_id'])) {
+            $query->whereHas('rental', function ($q) use ($filters) {
+                $q->where('room_id', $filters['room_id']);
+            });
+        }
+
+        if (!empty($filters['tenant_id'])) {
+            $query->whereHas('rental', function ($q) use ($filters) {
+                $q->where('tenant_id', $filters['tenant_id']);
+            });
+        }
+
+        $payments = $query->orderByDesc('payment_date')->get();
+
+        $summary = [
+            'total_count'               => $payments->count(),
+            'total_amount_all'          => (float) $payments->sum('amount'),
+            'total_amount_verified'     => (float) $payments->where('payment_status', 'terverifikasi')->sum('amount'),
+            'count_menunggu_verifikasi' => $payments->where('payment_status', 'menunggu_verifikasi')->count(),
+            'count_terverifikasi'       => $payments->where('payment_status', 'terverifikasi')->count(),
+            'count_ditolak'             => $payments->where('payment_status', 'ditolak')->count(),
+        ];
+
+        return [
+            'summary'  => $summary,
+            'payments' => $payments->values()->toArray(),
+        ];
+    }
+
+    /**
      * Resolve the storage path and original file name for a payment's proof file,
      * after verifying the authenticated user is allowed to access it.
      *
