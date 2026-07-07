@@ -23,6 +23,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
     Route::get('/me', [AuthController::class, 'me'])->name('auth.me');
     Route::get('/payments/{id}/download', [PaymentController::class, 'download'])->name('payments.download');
+    Route::get('/payments/{id}/invoice', [PaymentController::class, 'invoice'])->name('payments.invoice');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
@@ -37,10 +38,9 @@ Route::middleware('auth:api')->group(function () {
 
     // Manager & Administrator
     Route::middleware('role:manager,administrator')->group(function () {
-        Route::get('/payments/pending', [PaymentController::class, 'pending']);
+        Route::get('/payments/payment-verify', [PaymentController::class, 'paymentVerify']);
         Route::post('/payments/manual', [PaymentController::class, 'manual']);
-        Route::post('/payments/{id}/verify', [PaymentController::class, 'verify']);
-        Route::post('/payments/{id}/reject', [PaymentController::class, 'reject']);
+        Route::post('/payments/{id}/status', [PaymentController::class, 'updateStatus']);
         Route::apiResource('buildings', BuildingController::class);
         Route::apiResource('rooms', RoomController::class);
         Route::apiResource('tenants', TenantController::class);
