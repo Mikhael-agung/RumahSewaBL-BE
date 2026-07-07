@@ -123,8 +123,12 @@ class PaymentController extends Controller
 
     public function paymentVerify(Request $request): JsonResponse
     {
+        $request->validate([
+            'status' => 'nullable|string|in:menunggu_verifikasi,terverifikasi,ditolak',
+        ]);
+
         try {
-            $payments = $this->paymentService->pending($request->query('status', 'all'));
+            $payments = $this->paymentService->pending($request->query('status', 'menunggu_verifikasi'));
             return response()->json([
                 'success' => true,
                 'data'    => $payments,
