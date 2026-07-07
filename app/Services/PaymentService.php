@@ -277,13 +277,23 @@ class PaymentService
             ->toArray();
     }
 
-    public function pending(): array
+    /**
+     * Retrieve payments for the manager/admin verification list.
+     *
+     * @param string|null $status Filter by exact payment_status ('menunggu_verifikasi', 'terverifikasi', 'ditolak').
+     *                            Pass null or 'all' to return every status.
+     * @return array
+     */
+    public function pending(?string $status = 'menunggu_verifikasi'): array
     {
-        return Payment::where('payment_status', 'menunggu_verifikasi')
-            ->with(['rental.tenant', 'rental.room.building'])
-            ->orderBy('uploaded_at')
-            ->get()
-            ->toArray();
+        $query = Payment::with(['rental.tenant', 'rental.room.building'])
+            ->orderBy('uploaded_at', 'desc');
+
+        if ($status && $status !== 'all') {
+            $query->where('payment_status', $status);
+        }
+
+        return $query->get()->toArray();
     }
 
     public function verify(int $id): Payment
@@ -329,6 +339,31 @@ class PaymentService
         }
 
         return $payment->fresh();
+    }
+
+    /**
+     * Update payment status ke 'terverifikasi' atau 'ditolak' lewat satu method.
+     * Menggantikan pemanggilan terpisah verify()/reject() dari sisi controller.
+     *
+     * @param int $id
+     * @param string $status 'terverifikasi' atau 'ditolak'
+     * @param string|null $reason Wajib diisi kalau $status = 'ditolak'
+     * @return Payment
+     */
+    public function updateStatus(int $id, string $status, ?string $reason = null): Payment
+    {
+        if ($status === 'terverifikasi') {
+            return $this->verify($id);
+        }
+
+        if ($status === 'ditolak') {
+            if (!$reason) {
+                throw new \Exception('Alasan penolakan wajib diisi', 422);
+            }
+            return $this->reject($id, $reason);
+        }
+
+        throw new \Exception('Status tidak valid, gunakan "terverifikasi" atau "ditolak"', 422);
     }
 
     /**
