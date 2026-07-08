@@ -11,6 +11,8 @@ use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PaymentController extends Controller
 {
@@ -243,17 +245,27 @@ class PaymentController extends Controller
                 'date_to',
             ]));
 
+            $filename = 'Laporan-Pembayaran-' . now()->format('Ymd-His') . '.xlsx';
+            $path = 'exports/' . $filename;
+
+            // Simpan ke disk 'public' (bukan stream langsung ke response), biar FE
+            // cukup dapet URL dan tinggal <a href> / window.open — gak perlu urus
+            // header Authorization buat download file kayak kalau pakai Excel::download().
+            Excel::store(new \App\Exports\PaymentsExports($payment), $path, 'public');
+
             $this->activityLogService->log(
                 Auth::id(),
                 'export_payment_report',
                 'Mengekspor laporan pembayaran ke Excel'
             );
 
-            $filename = 'Laporan-Pembayaran-' . now()->format('Ymd-His') . '.xlsx';
-            return \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\PaymentsExports($payment),
-                $filename
-            );
+            return response()->json([
+                'success' => true,
+                'data'    => [
+                    'filename' => $filename,
+                    'url'      => Storage::disk('public')->url($path),
+                ],
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
