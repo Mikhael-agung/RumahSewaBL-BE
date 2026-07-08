@@ -42,7 +42,6 @@ class PaymentController extends Controller
                 'message' => 'Bukti pembayaran berhasil diupload',
                 'data'    => $payment,
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -67,7 +66,6 @@ class PaymentController extends Controller
                 'message' => 'Pembayaran manual berhasil dicatat',
                 'data'    => $payment,
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -96,7 +94,6 @@ class PaymentController extends Controller
                 'message' => 'Bukti pembayaran berhasil diperbarui',
                 'data'    => $payment,
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -169,7 +166,6 @@ class PaymentController extends Controller
                 'message' => $isReject ? 'Pembayaran berhasil ditolak' : 'Pembayaran berhasil diverifikasi',
                 'data'    => $payment,
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -199,7 +195,14 @@ class PaymentController extends Controller
 
         try {
             $report = $this->paymentService->report($request->only([
-                'month', 'year', 'status', 'building_id', 'room_id', 'tenant_id', 'date_from', 'date_to',
+                'month',
+                'year',
+                'status',
+                'building_id',
+                'room_id',
+                'tenant_id',
+                'date_from',
+                'date_to',
             ]));
 
             return response()->json([
@@ -214,10 +217,56 @@ class PaymentController extends Controller
         }
     }
 
-    public function download(int $id) {
+
+    public function exportExcel(Request $request)
+    {
+        $request->validate([
+            'month'       => 'nullable|integer|min:1|max:12',
+            'year'        => 'nullable|integer|min:2000|max:2100',
+            'status'      => 'nullable|string|in:all,menunggu_verifikasi,terverifikasi,ditolak',
+            'building_id' => 'nullable|integer|exists:buildings,id',
+            'room_id'     => 'nullable|integer|exists:rooms,id',
+            'tenant_id'   => 'nullable|integer|exists:tenants,id',
+            'date_from'   => 'nullable|date',
+            'date_to'     => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        try {
+            $payment = $this->paymentService->exportPayments($request->only([
+                'month',
+                'year',
+                'status',
+                'building_id',
+                'room_id',
+                'tenant_id',
+                'date_from',
+                'date_to',
+            ]));
+
+            $this->activityLogService->log(
+                Auth::id(),
+                'export_payment_report',
+                'Mengekspor laporan pembayaran ke Excel'
+            );
+
+            $filename = 'Laporan-Pembayaran-' . now()->format('Ymd-His') . '.xlsx';
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\PaymentsExport($payment),
+                $filename
+            );
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 500);
+        }
+    }
+
+    public function download(int $id)
+    {
         try {
             $file = $this->paymentService->download($id);
-            
+
             $this->activityLogService->log(
                 Auth::id(),
                 'download_payment_proof',
