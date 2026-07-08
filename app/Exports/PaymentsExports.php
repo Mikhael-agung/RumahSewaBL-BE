@@ -22,7 +22,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  * {@see \App\Services\PaymentService::exportPayments()}), karena method
  * {@see self::map()} mengakses relasi-relasi tersebut tanpa lazy-load ulang.
  */
-class PaymentsExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithStyles, WithTitle
+class PaymentsExports implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithStyles, WithTitle
 {
     /**
      * Koleksi Payment (beserta relasi ter-eager-load) yang akan di-export.

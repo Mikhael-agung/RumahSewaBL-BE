@@ -251,7 +251,7 @@ class PaymentController extends Controller
 
             $filename = 'Laporan-Pembayaran-' . now()->format('Ymd-His') . '.xlsx';
             return \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\PaymentsExport($payment),
+                new \App\Exports\PaymentsExports($payment),
                 $filename
             );
         } catch (\Exception $e) {
