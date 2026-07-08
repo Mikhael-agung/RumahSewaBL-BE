@@ -8,12 +8,21 @@ use App\Http\Requests\UpdateTenantRequest;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\ActivityLogService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class TenantController extends Controller
 {
+    protected ActivityLogService $activityLogService;
+
+    public function __construct(ActivityLogService $activityLogService)
+    {
+        $this->activityLogService = $activityLogService;
+    }
+
     public function index()
     {
         $tenants = Tenant::with('user')->latest()->get();
@@ -58,6 +67,12 @@ class TenantController extends Controller
 
         $tenant->load('user');
 
+        $this->activityLogService->log(
+            Auth::id(),
+            'create_tenant',
+            'Menambahkan penyewa baru: ' . $tenant->full_name . ' (' . $tenant->tenant_code . ')'
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Penyewa berhasil ditambahkan',
@@ -86,6 +101,12 @@ class TenantController extends Controller
         $tenant->update($request->validated());
         $tenant->load('user');
 
+        $this->activityLogService->log(
+            Auth::id(),
+            'update_tenant',
+            'Memperbarui data penyewa: ' . $tenant->full_name . ' (' . $tenant->tenant_code . ')'
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Penyewa berhasil diperbarui',
@@ -95,7 +116,7 @@ class TenantController extends Controller
 
     public function destroy(Tenant $tenant)
     {
-        if ($tenant->rentals()->where('rental_status', 'aktif')->whereNull('deleted_at')->exists()) {
+        if ($tenant->rentals()->where('rental_status', 'active')->whereNull('deleted_at')->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Penyewa tidak bisa dihapus karena masih memiliki penyewaan aktif',
@@ -103,7 +124,16 @@ class TenantController extends Controller
             ], 422);
         }
 
+        $tenantName = $tenant->full_name;
+        $tenantCode = $tenant->tenant_code;
+
         $tenant->delete();
+
+        $this->activityLogService->log(
+            Auth::id(),
+            'delete_tenant',
+            'Menghapus (soft-delete) penyewa: ' . $tenantName . ' (' . $tenantCode . ')'
+        );
 
         return response()->json([
             'success' => true,
