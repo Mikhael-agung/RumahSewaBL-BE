@@ -392,9 +392,13 @@ class PaymentService
      * }
      * @return array{summary: array, payments: array}
      */
-    public function report(array $filters = []): array
+    /**
+     * Bangun query pembayaran terfilter, dipakai bareng oleh report() (JSON) dan
+     * exportPayments() (Excel) biar logic filter-nya gak dobel.
+     */
+    private function buildReportQuery(array $filters = [])
     {
-        $query = Payment::with([
+        return Payment::with([
             'rental' => fn($q) => $q->withTrashed(),
             'rental.tenant' => fn($q) => $q->withTrashed(),
             'rental.room.building',
@@ -407,8 +411,11 @@ class PaymentService
             ->when(!empty($filters['building_id']), fn($q) => $q->whereHas('rental', fn($r) => $r->withTrashed()->whereHas('room', fn($r2) => $r2->where('building_id', $filters['building_id']))))
             ->when(!empty($filters['room_id']), fn($q) => $q->whereHas('rental', fn($r) => $r->withTrashed()->where('room_id', $filters['room_id'])))
             ->when(!empty($filters['tenant_id']), fn($q) => $q->whereHas('rental', fn($r) => $r->withTrashed()->where('tenant_id', $filters['tenant_id'])));
+    }
 
-        $payments = $query->orderByDesc('payment_date')->get();
+    public function report(array $filters = []): array
+    {
+        $payments = $this->buildReportQuery($filters)->orderByDesc('payment_date')->get();
 
         $summary = [
             'total_count'               => $payments->count(),
@@ -423,6 +430,15 @@ class PaymentService
             'summary'  => $summary,
             'payments' => $payments->values()->toArray(),
         ];
+    }
+
+    /**
+     * Ambil koleksi Payment terfilter (dipakai buat export Excel), tanpa
+     * bungkusan summary/toArray seperti report().
+     */
+    public function exportPayments(array $filters = [])
+    {
+        return $this->buildReportQuery($filters)->orderByDesc('payment_date')->get();
     }
 
     /**
