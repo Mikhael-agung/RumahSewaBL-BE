@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\UpdateProfileRequest;
-use App\Http\Requests\ChangepasswordRequest;
+use App\Http\Requests\ChangePasswordRequest;
 use App\Services\AuthService;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
