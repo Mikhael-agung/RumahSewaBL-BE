@@ -248,7 +248,7 @@ class PaymentController extends Controller
             $filename = 'Laporan-Pembayaran-' . now()->format('Ymd-His') . '.xlsx';
             $path = 'exports/' . $filename;
 
-            // Simpan ke disk 'public' (bukan stream langsung ke response), biar FE
+            // Simpan ke disk 'public' biar FE
             // cukup dapet URL dan tinggal <a href> / window.open — gak perlu urus
             // header Authorization buat download file kayak kalau pakai Excel::download().
             Excel::store(new \App\Exports\PaymentsExports($payment), $path, 'public');
