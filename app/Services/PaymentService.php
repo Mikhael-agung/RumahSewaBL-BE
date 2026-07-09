@@ -80,6 +80,26 @@ class PaymentService
             throw new \Exception('Anda tidak memiliki rental aktif saat ini. Silakan hubungi admin/manager.', 403);
         }
 
+        // Cegah input payment_month/payment_year yang gak relevan sama masa sewa
+        // (misal rental baru mulai bulan 3/2027 tapi diinput bulan 1/2020).
+        // Rentang valid: bulan mulai sewa s/d bulan berjalan sekarang.
+        $rentalStartMonth = $rental->start_date->copy()->startOfMonth();
+        $requestedMonth = \Carbon\Carbon::createFromDate(
+            (int) $data['payment_year'],
+            (int) $data['payment_month'],
+            1
+        )->startOfMonth();
+        $currentMonth = now()->startOfMonth();
+
+        if ($requestedMonth->lt($rentalStartMonth) || $requestedMonth->gt($currentMonth)) {
+            throw new \Exception(
+                'Bulan pembayaran harus antara ' . $this->monthName($rentalStartMonth->month) . ' ' . $rentalStartMonth->year
+                . ' sampai ' . $this->monthName($currentMonth->month) . ' ' . $currentMonth->year
+                . ' (sesuai masa sewa aktif Anda)',
+                422
+            );
+        }
+
         // Cek duplikasi — satu bulan satu kali
         $exists = Payment::where('rental_id', $rental->id)
             ->where('payment_month', $data['payment_month'])
