@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\UpdateProfileRequest;
+use App\Http\Requests\ChangepasswordRequest;
 use App\Services\AuthService;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
@@ -74,12 +76,61 @@ class AuthController extends Controller
     }
 
     public function refresh(Request $request)
-{
-    $result = $this->authService->refresh();
+    {
+        $result = $this->authService->refresh();
 
-    $status = $result['status'];
-    unset($result['status']);
+        $status = $result['status'];
+        unset($result['status']);
 
-    return response()->json($result, $status);
-}
+        return response()->json($result, $status);
+    }
+
+    public function changePassword(changePasswordRequest $request)
+    {
+        $user = JWTAuth::parseToken()->authenticate();
+
+        $result = $this->authService->changePassword(
+            $user,
+            $request->current_password,
+            $request->new_password
+        );
+        
+
+        if ($result['success']) {
+            $this->activityLogService->log(
+                $user->id,
+                'change_password',
+                'User ' . $user->username . ' mengubah password'
+            );
+        }
+
+        $status = $result['status'];
+        unset($result['status']);
+
+        return response()->json($result, $status);
+    }
+
+
+    public function updateProfile(UpdateProfileRequest $request)
+    {
+        $user = JWTAuth::parseToken()->authenticate();
+
+        $result = $this->authService->updateProfile(
+            $user,
+            $request->only(['phone_number', 'email'])
+        );
+
+        if ($result['success']) {
+            $this->activityLogService->log(
+                $user->id,
+                'update_profile',
+                'User ' . $user->username . ' memperbarui profil'
+            );
+        }
+
+        $status = $result['status'];
+        unset($result['status']);
+
+        return response()->json($result, $status);
+    }
 }

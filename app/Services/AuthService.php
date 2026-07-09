@@ -46,7 +46,8 @@ class AuthService
         ];
     }
 
-    public function logout(): array {
+    public function logout(): array
+    {
         try {
             JWTAuth::invalidate(JWTAuth::getToken());
 
@@ -55,7 +56,6 @@ class AuthService
                 'message' => 'Logout berhasil',
                 'status' => 200,
             ];
-
         } catch (TokenInvalidException $e) {
             return [
                 'success' => false,
@@ -71,7 +71,8 @@ class AuthService
         }
     }
 
-    public function me(): array {
+    public function me(): array
+    {
         $user = JWTAuth::parseToken()->authenticate();
         $role = DB::table('roles')->where('id', $user->role_id)->value('name');
 
@@ -87,28 +88,74 @@ class AuthService
     }
 
     public function refresh(): array
-{
-    try {
-        $newToken = JWTAuth::refresh(JWTAuth::getToken());
+    {
+        try {
+            $newToken = JWTAuth::refresh(JWTAuth::getToken());
+
+            return [
+                'success' => true,
+                'message' => 'Token berhasil diperbarui',
+                'token'   => $newToken,
+                'status'  => 200,
+            ];
+        } catch (TokenInvalidException $e) {
+            return [
+                'success' => false,
+                'message' => 'Token tidak valid',
+                'status'  => 401,
+            ];
+        } catch (JWTException $e) {
+            return [
+                'success' => false,
+                'message' => 'Token tidak ditemukan',
+                'status'  => 400,
+            ];
+        }
+    }
+
+    public function changePassword(User $user, string $currentPassword, string $newPassword): array
+    {
+        if (!Hash::check($currentPassword, $user->password)) {
+            return [
+                'success' => false,
+                'message' => 'Password lama tidak sesuai',
+                'status'  => 422,
+            ];
+        }
+
+        $user->password = Hash::make($newPassword);
+        $user->save();
 
         return [
             'success' => true,
-            'message' => 'Token berhasil diperbarui',
-            'token'   => $newToken,
+            'message' => 'Password berhasil diubah',
             'status'  => 200,
         ];
-    } catch (TokenInvalidException $e) {
+    }
+
+    public function updateProfile(User $user, array $data): array
+    {
+        $tenant = $user->tenant;
+
+        if (!$tenant) {
+            return [
+                'success' => false,
+                'message' => 'Data penyewa tidak ditemukan',
+                'status'  => 404,
+            ];
+        }
+
+        $tenant->fill($data);
+        $tenant->save();
+
         return [
-            'success' => false,
-            'message' => 'Token tidak valid',
-            'status'  => 401,
-        ];
-    } catch (JWTException $e) {
-        return [
-            'success' => false,
-            'message' => 'Token tidak ditemukan',
-            'status'  => 400,
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui',
+            'data'    => [
+                'phone_number' => $tenant->phone_number,
+                'email'        => $tenant->email,
+            ],
+            'status' => 200,
         ];
     }
-}
 }

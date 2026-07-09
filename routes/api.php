@@ -22,6 +22,7 @@ Route::middleware('auth:api')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
     Route::get('/me', [AuthController::class, 'me'])->name('auth.me');
+    Route::post('/change-password', [AuthController::class, 'changePassword'])->name('auth.change-password');
     Route::get('/payments/{id}/download', [PaymentController::class, 'download'])->name('payments.download');
     Route::get('/payments/{id}/invoice', [PaymentController::class, 'invoice'])->name('payments.invoice');
 
@@ -34,6 +35,7 @@ Route::middleware('auth:api')->group(function () {
     Route::middleware('role:penyewa')->group(function () {
         Route::post('/payments/upload', [PaymentController::class, 'upload']);
         Route::get('/payments/history', [PaymentController::class, 'history']);
+        Route::put('/profile', [AuthController::class, 'updateProfile'])->name('auth.update-profile');
     });
 
     // Manager & Administrator
