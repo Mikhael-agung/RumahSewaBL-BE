@@ -26,3 +26,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 SECURITY_CHECKLIST.md
+
+# Ignore database factories and seeders
+/database/factories/
+/database/seeders/

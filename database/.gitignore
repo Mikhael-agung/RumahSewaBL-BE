@@ -1,1 +1,5 @@
 *.sqlite*
+
+# Ignore database factories and seeders
+factories/
+seeders/
