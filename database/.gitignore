@@ -1,5 +1,5 @@
 *.sqlite*
 
 
-factories/
-seeders/
+# factories/
+# seeders/
