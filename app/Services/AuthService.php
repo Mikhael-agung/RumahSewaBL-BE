@@ -145,13 +145,24 @@ class AuthService
             ];
         }
 
-        $tenant->fill($data);
-        $tenant->save();
+        if(array_key_exists('username', $data)) {
+            $user->username = $data['username'];
+            $user->save();
+        }
+
+        $tenant->array_intersect_key($data, array_flip(['full_name', 'phone_number', 'email']));
+
+        if(!empty($tenantData)) {
+            $tenant->fill($tenantData);
+            $tenant->save();
+        }
 
         return [
             'success' => true,
             'message' => 'Profil berhasil diperbarui',
             'data'    => [
+                'username'     => $user->username,
+                'full_name'    => $tenant->full_name,
                 'phone_number' => $tenant->phone_number,
                 'email'        => $tenant->email,
             ],

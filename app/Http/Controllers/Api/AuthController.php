@@ -117,7 +117,7 @@ class AuthController extends Controller
 
         $result = $this->authService->updateProfile(
             $user,
-            $request->only(['phone_number', 'email'])
+            $request->only(['username', 'full_name', 'phone_number', 'email'])
         );
 
         if ($result['success']) {
