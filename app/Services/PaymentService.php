@@ -64,14 +64,12 @@ class PaymentService
     {
         $user = JWTAuth::parseToken()->authenticate();
 
-        // Ambil data tenant milik user ini (otomatis exclude yang soft-deleted)
         $tenant = \App\Models\Tenant::where('user_id', $user->id)->first();
 
         if (!$tenant) {
             throw new \Exception('Anda tidak memiliki data penyewa yang aktif. Silakan hubungi admin/manager.', 403);
         }
 
-        // Ambil rental aktif milik tenant ini
         $rental = Rental::where('tenant_id', $tenant->id)
             ->where('rental_status', 'active')
             ->first();
@@ -80,9 +78,6 @@ class PaymentService
             throw new \Exception('Anda tidak memiliki rental aktif saat ini. Silakan hubungi admin/manager.', 403);
         }
 
-        // Cegah input payment_month/payment_year yang gak relevan sama masa sewa
-        // (misal rental baru mulai bulan 3/2027 tapi diinput bulan 1/2020).
-        // Rentang valid: bulan mulai sewa s/d bulan berjalan sekarang.
         $rentalStartMonth = $rental->start_date->copy()->startOfMonth();
         $requestedMonth = \Carbon\Carbon::createFromDate(
             (int) $data['payment_year'],
@@ -100,7 +95,6 @@ class PaymentService
             );
         }
 
-        // Cek duplikasi — satu bulan satu kali
         $exists = Payment::where('rental_id', $rental->id)
             ->where('payment_month', $data['payment_month'])
             ->where('payment_year', $data['payment_year'])
@@ -121,11 +115,9 @@ class PaymentService
             }
         }
 
-        // Simpan file
         $fileName  = time() . '_' . $file->getClientOriginalName();
         $filePath  = $file->storeAs('payment_proofs', $fileName, 'public');
 
-        // Generate payment code
         $code = 'PAY-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
 
         $payment = Payment::create([
@@ -199,7 +191,6 @@ class PaymentService
                 }
             }
 
-            // Hapus file lama biar storage gak numpuk sampah
             if ($payment->proof_file_path && Storage::disk('public')->exists($payment->proof_file_path)) {
                 Storage::disk('public')->delete($payment->proof_file_path);
             }
@@ -245,7 +236,6 @@ class PaymentService
 
         $rental = Rental::findOrFail($data['rental_id']);
 
-        // Cek duplikasi — satu bulan satu kali (kecuali yang sudah ditolak)
         $exists = Payment::where('rental_id', $rental->id)
             ->where('payment_month', $data['payment_month'])
             ->where('payment_year', $data['payment_year'])
@@ -256,7 +246,6 @@ class PaymentService
             throw new \Exception('Pembayaran untuk bulan dan tahun ini sudah tercatat', 409);
         }
 
-        // Generate payment code
         $code = 'PAY-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
 
         $payment = Payment::create([
