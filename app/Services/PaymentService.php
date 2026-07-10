@@ -19,12 +19,6 @@ class PaymentService
         $this->notificationService = $notificationService;
     }
 
-    /**
-     * Konversi angka bulan (1-12) jadi nama bulan Bahasa Indonesia.
-     *
-     * @param int|string $month
-     * @return string
-     */
     private function monthName($month): string
     {
         $names = [
@@ -45,21 +39,6 @@ class PaymentService
         return $names[(int) $month] ?? (string) $month;
     }
 
-    /**
-     * Create a payment record from an uploaded proof file for the authenticated user's active rental.
-     *
-     * $data must contain:
-     * - `payment_month` (int|string) Month for the payment.
-     * - `payment_year` (int|string) Year for the payment.
-     * - `amount` (int|float) Payment amount.
-     * - `notes` (string|null) Optional note.
-     *
-     * @param array $data Payment attributes and metadata (see description for expected keys).
-     * @param \Illuminate\Http\UploadedFile $file Uploaded proof file (PDF expected).
-     * @return \App\Models\Payment The created Payment model.
-     * @throws \Exception Thrown with code 409 if a non-rejected payment for the same month/year already exists.
-     * @throws \Exception Thrown with code 422 if an uploaded file declared as PDF does not have a valid PDF header.
-     */
     public function upload(array $data, UploadedFile $file): Payment
     {
         $user = JWTAuth::parseToken()->authenticate();
@@ -89,8 +68,8 @@ class PaymentService
         if ($requestedMonth->lt($rentalStartMonth) || $requestedMonth->gt($currentMonth)) {
             throw new \Exception(
                 'Bulan pembayaran harus antara ' . $this->monthName($rentalStartMonth->month) . ' ' . $rentalStartMonth->year
-                . ' sampai ' . $this->monthName($currentMonth->month) . ' ' . $currentMonth->year
-                . ' (sesuai masa sewa aktif Anda)',
+                    . ' sampai ' . $this->monthName($currentMonth->month) . ' ' . $currentMonth->year
+                    . ' (sesuai masa sewa aktif Anda)',
                 422
             );
         }
@@ -147,16 +126,6 @@ class PaymentService
         return $payment;
     }
 
-    /**
-     * Update/timpa bukti pembayaran yang penyewa sendiri upload.
-     * Hanya bisa dilakukan kalau payment_status masih 'menunggu_verifikasi'
-     * (belum sempat diverifikasi/ditolak manager). File proof_file opsional —
-     * kalau tidak dikirim, file lama tetap dipakai, cuma data lain yang diupdate.
-     *
-     * @throws \Exception 404 kalau payment tidak ditemukan / bukan milik penyewa ini.
-     * @throws \Exception 422 kalau status payment sudah bukan 'menunggu_verifikasi'.
-     * @throws \Exception 422 kalau file PDF yang diupload tidak valid.
-     */
     public function update(int $id, array $data, ?UploadedFile $file = null): Payment
     {
         $user = JWTAuth::parseToken()->authenticate();
@@ -210,26 +179,6 @@ class PaymentService
         return $payment->fresh();
     }
 
-    /**
-     * Record a manual (offline) payment for a rental and mark it as verified.
-     *
-     * Creates a `Payment` with `payment_method = 'manual'`, `payment_status = 'terverifikasi'`,
-     * sets verification metadata (`verified_by`, `verified_at`) to the authenticated user,
-     * and returns the created `Payment`.
-     *
-     * @param array $data {
-     *     Data required to create the manual payment.
-     *
-     *     @type int    $rental_id     ID of the rental to which the payment applies.
-     *     @type int    $payment_month Month number of the payment.
-     *     @type int    $payment_year  Year of the payment.
-     *     @type float  $amount        Payment amount.
-     *     @type string $payment_date  Date of payment (Y-m-d or other accepted format).
-     *     @type string|null $notes    Optional notes for the payment.
-     * }
-     * @return \App\Models\Payment The newly created Payment model.
-     * @throws \Exception If a non-rejected payment for the same rental/month/year already exists (HTTP 409).
-     */
     public function manual(array $data): Payment
     {
         $user = JWTAuth::parseToken()->authenticate();
@@ -266,13 +215,6 @@ class PaymentService
         return $payment;
     }
 
-    /**
-     * Retrieve payment history for the authenticated user's active rental.
-     *
-     * Returns payments ordered by `payment_year` then `payment_month`, both descending.
-     *
-     * @return array An array of payment records for the active rental; an empty array if no active rental is found.
-     */
     public function history(): array
     {
         $user = JWTAuth::parseToken()->authenticate();
@@ -295,13 +237,6 @@ class PaymentService
             ->toArray();
     }
 
-    /**
-     * Retrieve payments for the manager/admin verification list.
-     *
-     * @param string|null $status Filter by exact payment_status ('menunggu_verifikasi', 'terverifikasi', 'ditolak').
-     *                            Pass null or 'all' to return every status.
-     * @return array
-     */
     public function pending(?string $status = 'menunggu_verifikasi'): array
     {
         $query = Payment::with(['rental.tenant', 'rental.room.building'])
@@ -359,15 +294,6 @@ class PaymentService
         return $payment->fresh();
     }
 
-    /**
-     * Update payment status ke 'terverifikasi' atau 'ditolak' lewat satu method.
-     * Menggantikan pemanggilan terpisah verify()/reject() dari sisi controller.
-     *
-     * @param int $id
-     * @param string $status 'terverifikasi' atau 'ditolak'
-     * @param string|null $reason Wajib diisi kalau $status = 'ditolak'
-     * @return Payment
-     */
     public function updateStatus(int $id, string $status, ?string $reason = null): Payment
     {
         if ($status === 'terverifikasi') {
@@ -384,27 +310,6 @@ class PaymentService
         throw new \Exception('Status tidak valid, gunakan "terverifikasi" atau "ditolak"', 422);
     }
 
-    /**
-     * Generate laporan pembayaran dengan filter opsional.
-     *
-     * Semua filter bersifat opsional — kalau tidak dikirim, dianggap tidak difilter.
-     *
-     * @param array $filters {
-     *     @type int|null    $month       Filter berdasarkan payment_month (1-12).
-     *     @type int|null    $year        Filter berdasarkan payment_year.
-     *     @type string|null $status      Filter payment_status ('menunggu_verifikasi'|'terverifikasi'|'ditolak'), null/'all' = semua status.
-     *     @type int|null    $building_id Filter berdasarkan gedung (lewat rental.room.building).
-     *     @type int|null    $room_id     Filter berdasarkan kamar (lewat rental.room).
-     *     @type int|null    $tenant_id   Filter berdasarkan penyewa (lewat rental.tenant).
-     *     @type string|null $date_from   Filter payment_date >= tanggal ini (format Y-m-d).
-     *     @type string|null $date_to     Filter payment_date <= tanggal ini (format Y-m-d).
-     * }
-     * @return array{summary: array, payments: array}
-     */
-    /**
-     * Bangun query pembayaran terfilter, dipakai bareng oleh report() (JSON) dan
-     * exportPayments() (Excel) biar logic filter-nya gak dobel.
-     */
     private function buildReportQuery(array $filters = [])
     {
         return Payment::with([
@@ -441,26 +346,11 @@ class PaymentService
         ];
     }
 
-    /**
-     * Ambil koleksi Payment terfilter (dipakai buat export Excel), tanpa
-     * bungkusan summary/toArray seperti report().
-     */
     public function exportPayments(array $filters = [])
     {
         return $this->buildReportQuery($filters)->orderByDesc('payment_date')->get();
     }
 
-    /**
-     * Resolve the storage path and original file name for a payment's proof file,
-     * after verifying the authenticated user is allowed to access it.
-     *
-     * A `penyewa` may only access proof files belonging to their own rental.
-     * `manager` and `administrator` may access any payment's proof file.
-     *
-     * @param int $id Payment ID.
-     * @return array{path: string, name: string, mime: string} Absolute disk path, original file name, and mime type.
-     * @throws \Exception If the payment/proof does not exist (404) or the user is not authorized (403).
-     */
     public function download(int $id): array
     {
         $user = JWTAuth::parseToken()->authenticate();
@@ -492,17 +382,6 @@ class PaymentService
         ];
     }
 
-    /**
-     * Resolve and authorize the data needed to render a payment invoice/kwitansi PDF.
-     *
-     * Only payments with `payment_status = 'terverifikasi'` have an invoice.
-     * A `penyewa` may only access their own rental's invoice. `manager` and
-     * `administrator` may access any invoice.
-     *
-     * @param int $id Payment ID.
-     * @return array{payment: Payment, tenant: ?\App\Models\Tenant, room: ?\App\Models\Room, building: ?\App\Models\Building, periodLabel: string, paymentMethodLabel: string, verifiedByName: ?string, filename: string}
-     * @throws \Exception If not found (404), not yet verified (422), or not authorized (403).
-     */
     public function generateInvoice(int $id): array
     {
         $user = JWTAuth::parseToken()->authenticate();
