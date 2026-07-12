@@ -45,10 +45,7 @@ class Payment extends Model
         'amount'       => 'decimal:2',
     ];
 
-    // proof_file_path di DB cuma path relatif (mis. "payment_proofs/xxx.jpeg"),
-    // jadi selalu ikutkan proof_file_url ini di setiap response biar frontend
-    // gak perlu nyusun URL sendiri (dan gak lupa prefix /storage/).
-    protected $appends = ['proof_file_url'];
+    protected $appends = ['proof_file_url', 'payment_method_label'];
 
     public function getProofFileUrlAttribute(): ?string
     {
@@ -57,6 +54,15 @@ class Payment extends Model
         }
 
         return Storage::disk('public')->url($this->proof_file_path);
+    }
+
+    public function getPaymentMethodLabelAttribute(): string
+    {
+        return match ($this->payment_method) {
+            'upload' => 'Online',
+            'manual' => 'Offline',
+            default  => $this->payment_method,
+        };
     }
 
         public function rental()

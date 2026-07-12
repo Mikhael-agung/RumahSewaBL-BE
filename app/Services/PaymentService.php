@@ -402,11 +402,6 @@ class PaymentService
             throw new \Exception('Anda tidak berhak mengakses kwitansi ini', 403);
         }
 
-        $methodLabels = [
-            'upload' => 'Transfer (Upload Bukti)',
-            'manual' => 'Manual / Tunai',
-        ];
-
         $monthNames = [
             1 => 'Januari',
             2 => 'Februari',
@@ -428,7 +423,7 @@ class PaymentService
             'room'                => $payment->rental->room ?? null,
             'building'            => $payment->rental->room->building ?? null,
             'periodLabel'         => ($monthNames[$payment->payment_month] ?? $payment->payment_month) . ' ' . $payment->payment_year,
-            'paymentMethodLabel'  => $methodLabels[$payment->payment_method] ?? $payment->payment_method,
+            'paymentMethodLabel'  => $payment->payment_method_label,
             'verifiedByName'      => $payment->verifiedBy->username ?? null,
             'filename'            => 'Kwitansi-' . $payment->payment_code . '.pdf',
         ];

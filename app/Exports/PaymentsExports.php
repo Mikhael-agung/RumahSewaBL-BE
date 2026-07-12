@@ -119,7 +119,7 @@ class PaymentsExports implements FromCollection, WithHeadings, WithMapping, Shou
             (self::MONTH_NAMES[$payment->payment_month] ?? $payment->payment_month) . ' ' . $payment->payment_year,
             (float) $payment->amount,
             $payment->payment_date ? \Carbon\Carbon::parse($payment->payment_date)->format('d/m/Y') : '-',
-            $payment->payment_method === 'manual' ? 'Manual/Tunai' : 'Transfer',
+            $payment->payment_method_label,
             str_replace('_', ' ', ucfirst($payment->payment_status)),
             $payment->verifiedBy->username ?? '-',
             $payment->notes ?? '-',
