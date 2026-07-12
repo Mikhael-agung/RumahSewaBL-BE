@@ -52,6 +52,19 @@ class PaymentController extends Controller
         }
     }
 
+    public function show(int $id): JsonResponse
+    {
+        try {
+            $payment = $this->paymentService->show($id);
+            return response()->json(['success' => true, 'data' => $payment]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 404);
+        }
+    }
+
     public function manual(StorePaymentManualRequest $request): JsonResponse
     {
         try {

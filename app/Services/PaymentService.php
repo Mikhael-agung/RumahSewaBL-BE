@@ -433,4 +433,10 @@ class PaymentService
             'filename'            => 'Kwitansi-' . $payment->payment_code . '.pdf',
         ];
     }
+
+    public function show(int $id): Payment
+    {
+        return Payment::with(['rental.tenant', 'rental.room.building', 'verifiedBy', 'createdBy'])
+            ->findOrFail($id);
+    }
 }

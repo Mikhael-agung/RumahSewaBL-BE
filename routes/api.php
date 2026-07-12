@@ -44,6 +44,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/payments/payment-verify', [PaymentController::class, 'paymentVerify']);
         Route::get('/reports/payments', [PaymentController::class, 'report']);
         Route::get('/reports/payments/export', [PaymentController::class, 'exportExcel']);
+        Route::get('/payments/{id}', [PaymentController::class, 'show']);
         Route::post('/payments/manual', [PaymentController::class, 'manual']);
         Route::post('/payments/{id}/status', [PaymentController::class, 'updateStatus']);
         Route::apiResource('buildings', BuildingController::class);
