@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
  * @property string $payment_status Status: menunggu_verifikasi, terverifikasi, ditolak
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\Storage;
  */
 class Payment extends Model
 {
-    use softDeletes;
+    use HasFactory, softDeletes;
+
     protected $table = 'payments';
     protected $fillable = [
         'payment_code',
