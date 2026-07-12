@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\RentalController;
 use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\PaymentDeadlineController;
 use App\Http\Controllers\Api\NotificationController;
 
@@ -60,5 +61,10 @@ Route::middleware('auth:api')->group(function () {
     Route::middleware('role:administrator')->group(function () {
         Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activitylog.index');
         Route::get('/activity-logs/{activityLog}', [ActivityLogController::class, 'show'])->name('activitylog.show');
+
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::patch('/users/{id}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggle-active');
+        Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
     });
 });
