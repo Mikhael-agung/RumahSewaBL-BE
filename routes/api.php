@@ -12,7 +12,60 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\PaymentDeadlineController;
 use App\Http\Controllers\Api\NotificationController;
 
-Route::get('/health', fn() => response()->json(['status' => 'ok']));
+Route::get('/', function () {
+    return response()->json([
+        'application' => config('app.name'),
+        'description' => 'Move to subdomain api.rumahsewabirulaut.com',
+
+        'status' => 'online',
+        'version' => '1.0.0',
+
+        'framework' => [
+            'name' => 'Laravel',
+            'version' => app()->version(),
+            'php' => PHP_VERSION,
+        ],
+
+        'authentication' => [
+            'type' => 'JWT Bearer Token',
+            'header' => 'Authorization: Bearer <token>',
+        ],
+
+        'public_endpoints' => [
+            [
+                'method' => 'GET',
+                'endpoint' => '/health',
+                'description' => 'API health check',
+            ],
+            [
+                'method' => 'POST',
+                'endpoint' => '/login',
+                'description' => 'Authenticate user',
+            ],
+            [
+                'method' => 'POST',
+                'endpoint' => '/refresh',
+                'description' => 'Refresh access token',
+            ],
+        ],
+
+        'documentation' => [
+            'available' => false,
+            'url' => null,
+        ],
+
+        'server_time' => now()->toIso8601String(),
+    ]);
+});
+
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'application' => config('app.name'),
+        'version' => '1.0.0',
+        'timestamp' => now()->toIso8601String(),
+    ]);
+});
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
